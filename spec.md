@@ -77,7 +77,7 @@ Single page:
 The form is a single row (wrapping on small widths) with:
 
 1. **Surface selector** — a select over the five [TG-FCT-1] surfaces: `Did` (labelled "Services", the default), `Ecosystem`, `Corporation`, `CredentialSchema` (labelled "Credential Schemas"), `ServiceEndpoint` (labelled "Service Endpoints").
-2. **Free-text input** — a single text input bound to the request's `freeText`. Placeholder: `Search services, organizations, schemas...`. Matching follows the graph's semantics ([TG-FCT-4], and [TG-FCT-4a] once merged): whole-token, case-insensitive, conjunctive across tokens. The UI MUST NOT pre-process the string beyond trimming.
+2. **Free-text input** — a single text input bound to the request's `freeText`. Placeholder: `Search the Discovery layer and decentralized trust graph`. Matching follows the graph's semantics ([TG-FCT-4], and [TG-FCT-4a] once merged): whole-token, case-insensitive, conjunctive across tokens. The UI MUST NOT pre-process the string beyond trimming.
 3. **Filters toggle** — a button ("Filters") that expands or collapses the filter panel of [SRCH-FORM-3]. A count badge shows how many filters are active while the panel is collapsed.
 
 An empty free-text input with no filters is a valid query: it lists everything on the surface, ranked by the graph's trust signals.

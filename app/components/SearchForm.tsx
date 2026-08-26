@@ -76,7 +76,7 @@ export default function SearchForm({
             ref={inputRef}
             type="text"
             className="input w-full pl-10"
-            placeholder="Search services, organizations, schemas..."
+            placeholder="Search the Discovery layer and decentralized trust graph"
             value={query.freeText}
             onChange={(e) => onFreeTextChange(e.target.value)}
             aria-label="Free text search"
