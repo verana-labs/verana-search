@@ -124,6 +124,12 @@ body {
   border-color: var(--color-primary);
 }
 
+/* Entity badge: the DID is a Corporation / Ecosystem controller ------------ */
+.chip-entity {
+  color: var(--color-primary-bright);
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-rule));
+}
+
 /* Cards -------------------------------------------------------------------- */
 .card {
   background: var(--color-surface);

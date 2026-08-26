@@ -61,6 +61,8 @@ export type DidSnippet = {
   operatorLogoDigestSri?: string | null;
   operatorCountryCode?: string | null;
   serviceEndpoints?: ServiceEndpointRef[];
+  isCorporation?: boolean;
+  ecosystemIds?: number[];
   corporationDeposit?: string | null;
   corporationSlashedEvents?: number | null;
   corporationLastSlashedAtTime?: string | null;
@@ -117,6 +119,8 @@ export type ResolveResponse = {
   evaluatedAtBlock: number;
   expiresAtTime: string | null;
   corporationId: number;
+  corporation?: { id: number } | null;
+  ecosystems?: Array<{ id: number; archived?: boolean }>;
   ecsCredentials?: EcsCredential[];
   services?: Array<{
     id: string;
@@ -138,6 +142,9 @@ export type DidCard = {
   operatorRegistryId: string | null;
   operatorAddress: string | null;
   endpointTypes: string[];
+  /** Entity bindings: the DID is a Corporation / controls Ecosystems. */
+  isCorporation: boolean;
+  ecosystemIds: number[];
   /** Owner-Corporation trust signals ([SRCH-ENR-2a]). */
   corporationId: number | null;
   corporationDeposit: string | number | null;

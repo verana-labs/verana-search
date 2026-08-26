@@ -160,8 +160,10 @@ The devnet graph currently returns the pre-[TG-FCT-6a] minimum snippet for `Did`
 
 ```json
 POST {RESOLVER_BASE_URL}/v4/verifiable-trust/resolve
-{ "did": "<hit.id>", "ecsCredentials": true, "services": true }
+{ "did": "<hit.id>", "ecsCredentials": true, "services": true, "corporation": true, "ecosystems": {} }
 ```
+
+and extract the **entity bindings** for the badges of [SRCH-RES-1]: `isCorporation` (the `corporation` object is present, i.e. the DID is a Corporation's declared DID) and `ecosystemIds` (the ids of `ecosystems[]`, the Ecosystems this DID controls) — or, when the graph ships them ([SRCH-ENR-4]), the snippet fields `isCorporation` / `ecosystemIds` directly;
 
 and extract, from `services[]` (the non-`LinkedVerifiablePresentation` service entries of the DID Document):
 
@@ -213,6 +215,7 @@ Each row is a **condensed, two-zone version of the verana.io `ProofOfTrustCard`*
   - badges are neutral (`bg-surface-2`, `text-muted`, `border-rule`), not colored: they state protocol reachability ("which protocols can I talk to it with"), not trust;
   - clicking a badge sets the `Did.serviceTypes` `containsAny` filter to that type and re-queries (same behaviour as a facet refinement per [SRCH-RES-3]).
 - **Trust chip** (top right of the SERVICE zone): Signal-Green `chip` "VERIFIED" when `trusted && !isTrustExpired`; muted chip "UNTRUSTED" when `includeUntrusted` surfaced a non-trusted DID. `pattern` and `operatorKind` are not shown as chips (they are implicit in the card content).
+- **Entity badges** (left of the trust chip): a purple `chip` "CORPORATION" when the DID is the declared DID of a `Corporation` entry, and a purple `chip` "ECOSYSTEM" when the DID controls one or more Ecosystems (tooltip lists the ecosystem ids). Sourced per [SRCH-ENR-2] (`isCorporation` / `ecosystemIds`).
 - On small widths the two zones stack vertically, SERVICE first.
 - The row is clickable. v1: opens the DID's resolver JSON in a new tab (`{RESOLVER_BASE_URL}/v4/verifiable-trust/resolve` result rendered raw or via a minimal drawer). A dedicated detail page is out of scope for v1.
 - `highlights[]` fragments, when present, MAY be rendered under the description in muted small text with `<em>` matches styled in accent color, after sanitization: treat fragments as text and re-apply only the `<em>` markers; never inject response HTML.

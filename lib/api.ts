@@ -98,7 +98,7 @@ export function resolveDid(
     try {
       return await postJson<ResolveResponse>(
         `${config.resolverBaseUrl}/v4/verifiable-trust/resolve`,
-        { did, ecsCredentials: true, services: true },
+        { did, ecsCredentials: true, services: true, corporation: true, ecosystems: {} },
       );
     } finally {
       release();
@@ -233,6 +233,8 @@ export async function buildDidCard(
     operatorRegistryId: str(o?.["registryId"]),
     operatorAddress: str(o?.["address"]),
     endpointTypes: (own.services ?? []).map((e) => e.type),
+    isCorporation: own.corporation != null,
+    ecosystemIds: (own.ecosystems ?? []).map((e) => e.id),
     corporationId: own.corporationId ?? null,
     corporationDeposit: corp?.deposit ?? null,
     corporationSlashedEvents: corp?.slashCount ?? null,

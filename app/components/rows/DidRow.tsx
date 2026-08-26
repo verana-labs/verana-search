@@ -29,6 +29,8 @@ function cardFromSnippet(hit: SearchHit): DidCard | null {
     operatorRegistryId: null, // never in the snippet; resolver-only
     operatorAddress: null,
     endpointTypes: (s.serviceEndpoints ?? []).map((e) => e.type),
+    isCorporation: s.isCorporation ?? false,
+    ecosystemIds: s.ecosystemIds ?? [],
     corporationId: s.corporationId ?? null,
     corporationDeposit: s.corporationDeposit ?? null,
     corporationSlashedEvents: s.corporationSlashedEvents ?? null,
@@ -128,8 +130,21 @@ export default function DidRow({
         <div>
           <div className="flex items-center justify-between">
             <span className="eyebrow">Service</span>
-            <span className={`chip ${trusted ? "chip-verified" : ""}`}>
-              {trusted ? "Verified" : "Untrusted"}
+            <span className="flex items-center gap-1.5">
+              {card?.isCorporation && (
+                <span className="chip chip-entity">Corporation</span>
+              )}
+              {(card?.ecosystemIds.length ?? 0) > 0 && (
+                <span
+                  className="chip chip-entity"
+                  title={`Controls ecosystem${(card?.ecosystemIds.length ?? 0) > 1 ? "s" : ""} ${card?.ecosystemIds.join(", ")}`}
+                >
+                  Ecosystem
+                </span>
+              )}
+              <span className={`chip ${trusted ? "chip-verified" : ""}`}>
+                {trusted ? "Verified" : "Untrusted"}
+              </span>
             </span>
           </div>
           <div className="mt-3 flex items-start gap-3">
