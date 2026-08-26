@@ -183,6 +183,52 @@ body {
   color: var(--color-muted);
 }
 
+/* Status LED (ported from the playground network chip) --------------------- */
+.led {
+  position: relative;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+.led-green {
+  background: var(--color-success);
+  box-shadow: 0 0 6px 1px
+    color-mix(in srgb, var(--color-success) 70%, transparent);
+}
+.led-green::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-success) 35%, transparent);
+  animation: led-pulse 2s ease-out infinite;
+}
+.led-red {
+  background: #ef4444;
+  box-shadow: 0 0 6px 1px rgb(239 68 68 / 0.6);
+}
+.led-idle {
+  background: var(--color-rule);
+}
+@keyframes led-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  70%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .led-green::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 /* Skeleton shimmer --------------------------------------------------------- */
 .skeleton {
   background: var(--color-surface-2);

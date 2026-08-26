@@ -1,3 +1,4 @@
+import NetworkChip from "./NetworkChip";
 import ThemeToggle from "./ThemeToggle";
 
 export default function Header({ networkLabel }: { networkLabel: string }) {
@@ -8,9 +9,11 @@ export default function Header({ networkLabel }: { networkLabel: string }) {
         <img src="/logo.svg" alt="Verana" className="h-8 w-8" />
         <span className="wordmark text-xl">verana</span>
         <span className="eyebrow">Search</span>
-        <span className="chip">{networkLabel}</span>
       </div>
-      <ThemeToggle />
+      <div className="flex items-center gap-3">
+        <NetworkChip label={networkLabel} />
+        <ThemeToggle />
+      </div>
     </header>
   );
 }
