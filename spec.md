@@ -160,10 +160,10 @@ The devnet graph currently returns the pre-[TG-FCT-6a] minimum snippet for `Did`
 
 ```json
 POST {RESOLVER_BASE_URL}/v4/verifiable-trust/resolve
-{ "did": "<hit.id>", "ecsCredentials": true, "services": true, "corporation": true, "ecosystems": {} }
+{ "did": "<hit.id>", "ecsCredentials": true, "services": true, "ecosystems": {} }
 ```
 
-and extract the **entity bindings** for the badges of [SRCH-RES-1]: `isCorporation` (the `corporation` object is present, i.e. the DID is a Corporation's declared DID) and `ecosystemIds` (the ids of `ecosystems[]`, the Ecosystems this DID controls) — or, when the graph ships them ([SRCH-ENR-4]), the snippet fields `isCorporation` / `ecosystemIds` directly;
+and extract the **entity bindings** for the badges of [SRCH-RES-1]: `isCorporation` MUST be true if and only if the DID **is** the declared `did` of a `Corporation` entry — determined by comparing the owner Corporation record's `did` (from the [SRCH-ENR-2a] fetch) with the hit DID, NOT by the mere presence of a resolver `corporation` object (some resolver builds return it for owned DIDs too); and `ecosystemIds` (the ids of `ecosystems[]`, the Ecosystems this DID controls). When the graph ships the [TG-FCT-6a] snippet fields ([SRCH-ENR-4]), `isCorporation` / `ecosystemIds` come from the snippet directly;
 
 and extract, from `services[]` (the non-`LinkedVerifiablePresentation` service entries of the DID Document):
 

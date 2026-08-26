@@ -98,7 +98,7 @@ export function resolveDid(
     try {
       return await postJson<ResolveResponse>(
         `${config.resolverBaseUrl}/v4/verifiable-trust/resolve`,
-        { did, ecsCredentials: true, services: true, corporation: true, ecosystems: {} },
+        { did, ecsCredentials: true, services: true, ecosystems: {} },
       );
     } finally {
       release();
@@ -118,6 +118,7 @@ function str(v: unknown): string | null {
 /* Owner-Corporation trust signals ([SRCH-ENR-2a]), cached per Corporation
    so hits of the same owner resolve at most once. */
 type CorporationSignals = {
+  did: string | null;
   deposit: number | null;
   slashCount: number | null;
   lastSlashed: string | null;
@@ -140,6 +141,7 @@ export function getCorporationSignals(
     if (!res.ok) throw new ApiError(res.status, null, `HTTP ${res.status}`);
     const json = (await res.json()) as {
       corporation?: {
+        did?: string;
         deposit?: number;
         slash_count?: number;
         last_slashed?: string | null;
@@ -148,6 +150,7 @@ export function getCorporationSignals(
     };
     const c = json.corporation ?? {};
     return {
+      did: typeof c.did === "string" ? c.did : null,
       deposit: typeof c.deposit === "number" ? c.deposit : null,
       slashCount: typeof c.slash_count === "number" ? c.slash_count : null,
       lastSlashed: c.last_slashed ?? null,
@@ -233,7 +236,7 @@ export async function buildDidCard(
     operatorRegistryId: str(o?.["registryId"]),
     operatorAddress: str(o?.["address"]),
     endpointTypes: (own.services ?? []).map((e) => e.type),
-    isCorporation: own.corporation != null,
+    isCorporation: corp?.did != null && corp.did === did,
     ecosystemIds: (own.ecosystems ?? []).map((e) => e.id),
     corporationId: own.corporationId ?? null,
     corporationDeposit: corp?.deposit ?? null,
