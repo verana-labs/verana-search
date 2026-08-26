@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCopy, faCheck } from "@fortawesome/free-solid-svg-icons";
 import type { AppConfig } from "../../../lib/config";
 import type { DidCard, FilterValue, SearchHit } from "../../../lib/types";
-import { buildDidCard } from "../../../lib/api";
+import { buildDidCard, formatVna } from "../../../lib/api";
 import { badgeList, MAX_BADGES } from "../../../lib/badges";
 import { countryFlag, truncateDid } from "../../../lib/flag";
 
@@ -29,6 +29,11 @@ function cardFromSnippet(hit: SearchHit): DidCard | null {
     operatorRegistryId: null, // never in the snippet; resolver-only
     operatorAddress: null,
     endpointTypes: (s.serviceEndpoints ?? []).map((e) => e.type),
+    corporationId: s.corporationId ?? null,
+    corporationDeposit: s.corporationDeposit ?? null,
+    corporationSlashedEvents: s.corporationSlashedEvents ?? null,
+    corporationLastSlashedAtTime: s.corporationLastSlashedAtTime ?? null,
+    corporationSlashedValue: s.corporationSlashedValue ?? null,
   };
 }
 
@@ -252,6 +257,38 @@ export default function DidRow({
               )}
             </div>
           </div>
+
+          {/* Owner-Corporation trust signals ([SRCH-ENR-2a] / [SRCH-RES-1]) */}
+          {card?.corporationId != null && (
+            <div className="mt-3 border-t border-rule pt-2.5 font-mono text-xs text-muted">
+              <p className="eyebrow !text-[0.62rem]">
+                Corporation #{card.corporationId}
+              </p>
+              <p className="mt-1">
+                deposit {formatVna(card.corporationDeposit) ?? "n/a"}
+                <span className="mx-1.5">·</span>
+                <span
+                  className={
+                    (card.corporationSlashedEvents ?? 0) > 0
+                      ? "text-[#ef4444]"
+                      : ""
+                  }
+                >
+                  slashes {card.corporationSlashedEvents ?? "n/a"}
+                </span>
+              </p>
+              {(card.corporationSlashedEvents ?? 0) > 0 && (
+                <p className="mt-0.5 text-[#ef4444]">
+                  last slashed{" "}
+                  {card.corporationLastSlashedAtTime
+                    ? card.corporationLastSlashedAtTime.slice(0, 10)
+                    : "n/a"}
+                  <span className="mx-1.5">·</span>
+                  slashed {formatVna(card.corporationSlashedValue) ?? "n/a"}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

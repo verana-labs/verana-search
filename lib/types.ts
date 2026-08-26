@@ -61,6 +61,10 @@ export type DidSnippet = {
   operatorLogoDigestSri?: string | null;
   operatorCountryCode?: string | null;
   serviceEndpoints?: ServiceEndpointRef[];
+  corporationDeposit?: string | null;
+  corporationSlashedEvents?: number | null;
+  corporationLastSlashedAtTime?: string | null;
+  corporationSlashedValue?: string | null;
 };
 
 export type GenericSnippet = Record<string, unknown>;
@@ -134,4 +138,10 @@ export type DidCard = {
   operatorRegistryId: string | null;
   operatorAddress: string | null;
   endpointTypes: string[];
+  /** Owner-Corporation trust signals ([SRCH-ENR-2a]). */
+  corporationId: number | null;
+  corporationDeposit: string | number | null;
+  corporationSlashedEvents: number | null;
+  corporationLastSlashedAtTime: string | null;
+  corporationSlashedValue: string | number | null;
 };

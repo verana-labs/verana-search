@@ -7,8 +7,9 @@ export default function Header({ networkLabel }: { networkLabel: string }) {
       <div className="flex items-center gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.svg" alt="Verana" className="h-8 w-8" />
-        <span className="wordmark text-xl">verana</span>
-        <span className="eyebrow">Search</span>
+        <span className="wordmark text-xl">
+          Verana<span className="text-primary">Graph</span>
+        </span>
       </div>
       <div className="flex items-center gap-3">
         <NetworkChip label={networkLabel} />

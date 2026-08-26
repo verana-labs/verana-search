@@ -115,6 +115,52 @@ function str(v: unknown): string | null {
   return typeof v === "string" && v.length > 0 ? v : null;
 }
 
+/* Owner-Corporation trust signals ([SRCH-ENR-2a]), cached per Corporation
+   so hits of the same owner resolve at most once. */
+type CorporationSignals = {
+  deposit: number | null;
+  slashCount: number | null;
+  lastSlashed: string | null;
+  slashedDeposit: number | null;
+};
+
+const corporationCache = new Map<number, Promise<CorporationSignals>>();
+
+export function getCorporationSignals(
+  config: AppConfig,
+  corporationId: number,
+): Promise<CorporationSignals> {
+  const cached = corporationCache.get(corporationId);
+  if (cached) return cached;
+
+  const promise = (async (): Promise<CorporationSignals> => {
+    const res = await fetch(
+      `${config.resolverBaseUrl}/v4/corporation/get/${corporationId}?gf_data=none`,
+    );
+    if (!res.ok) throw new ApiError(res.status, null, `HTTP ${res.status}`);
+    const json = (await res.json()) as {
+      corporation?: {
+        deposit?: number;
+        slash_count?: number;
+        last_slashed?: string | null;
+        slashed_deposit?: number;
+      };
+    };
+    const c = json.corporation ?? {};
+    return {
+      deposit: typeof c.deposit === "number" ? c.deposit : null,
+      slashCount: typeof c.slash_count === "number" ? c.slash_count : null,
+      lastSlashed: c.last_slashed ?? null,
+      slashedDeposit:
+        typeof c.slashed_deposit === "number" ? c.slashed_deposit : null,
+    };
+  })();
+
+  promise.catch(() => corporationCache.delete(corporationId));
+  corporationCache.set(corporationId, promise);
+  return promise;
+}
+
 function findCred(
   creds: EcsCredential[] | undefined,
   ecsSchema: string,
@@ -164,6 +210,17 @@ export async function buildDidCard(
   const o = org?.credentialSubject;
   const p = persona?.credentialSubject;
 
+  // [SRCH-ENR-2a] owner-Corporation trust signals (best effort).
+  let corp: CorporationSignals | null = null;
+  if (typeof own.corporationId === "number") {
+    try {
+      corp = await getCorporationSignals(config, own.corporationId);
+    } catch {
+      // signals stay null; the row degrades gracefully
+    }
+  }
+  const neverSlashed = (corp?.slashCount ?? 0) === 0;
+
   return {
     serviceName: str(s["name"]),
     serviceType: str(s["type"]),
@@ -176,5 +233,25 @@ export async function buildDidCard(
     operatorRegistryId: str(o?.["registryId"]),
     operatorAddress: str(o?.["address"]),
     endpointTypes: (own.services ?? []).map((e) => e.type),
+    corporationId: own.corporationId ?? null,
+    corporationDeposit: corp?.deposit ?? null,
+    corporationSlashedEvents: corp?.slashCount ?? null,
+    corporationLastSlashedAtTime: neverSlashed ? null : corp?.lastSlashed ?? null,
+    corporationSlashedValue: neverSlashed ? null : corp?.slashedDeposit ?? null,
   };
+}
+
+/** Formats a Coin value ("40000000uvna" or micro-denom number) as VNA. */
+export function formatVna(value: string | number | null): string | null {
+  if (value === null) return null;
+  let micro: number;
+  if (typeof value === "number") {
+    micro = value;
+  } else {
+    const match = value.match(/^(\d+)\s*uvna$/i) ?? value.match(/^(\d+)$/);
+    if (!match) return value; // unknown denom: show verbatim
+    micro = Number(match[1]);
+  }
+  const vna = micro / 1_000_000;
+  return `${vna.toLocaleString("en-US", { maximumFractionDigits: 2 })} VNA`;
 }

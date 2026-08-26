@@ -172,13 +172,15 @@ and, from `ecsCredentials[]`:
 - the **ServiceCredential** subject: `name`, `type`, `description`, `logoUri`;
 - the **operator identity**: if the ServiceCredential is self-issued (pattern `A`), the same DID's `OrganizationCredential` / `PersonaCredential` subject; if delegated (pattern `B`), a second `resolve` on the ServiceCredential's issuer DID (recovered via `issuerParticipantId` → the issuer Participant's DID, or by resolving the credential issuer) to obtain the ORG / PERSONA subject. From it: `name`, `logoUri` or `avatarUri`, `countryCode` or `controllerCountryCode`, `registryId`, `address` (org only).
 
+[SRCH-ENR-2a] **Owner-Corporation trust signals.** For each `Did` hit the app MUST also surface the owner Corporation's trust signals: `corporationId`, `corporationDeposit`, `corporationSlashedEvents` (`0` when never slashed), `corporationLastSlashedAtTime` and `corporationSlashedValue` (`null` when never slashed). Source: the [TG-FCT-6a] snippet fields when present; otherwise one indexer call per owner Corporation, `GET {RESOLVER_BASE_URL}/v4/corporation/get/{corporationId}` (cached by `corporationId`, shared across hits of the same Corporation), mapping `deposit` → `corporationDeposit`, `slash_count` → `corporationSlashedEvents`, `last_slashed` → `corporationLastSlashedAtTime`, `slashed_deposit` → `corporationSlashedValue`. Coin amounts are displayed in VNA (uvna / 10^6), whether they arrive as Coin strings (`"40000000uvna"`) or micro-denom numbers.
+
 [SRCH-ENR-3] Enrichment mechanics:
 
 - Enrichment runs **per rendered row, concurrently**, bounded to at most 6 in-flight resolver calls; rows render immediately with the snippet data and skeleton placeholders for the credential fields, then fill in as resolves land (no layout shift beyond the reserved placeholder areas).
 - Responses MUST be **cached in memory keyed by `(did, lastObservedAtTime)`**, so re-queries, scroll-back, and shared operator DIDs (pattern B parents) resolve at most once per observation.
 - A failed resolve degrades gracefully: the row keeps the DID, trust chip, and pattern, and shows "details unavailable" in place of the credential fields; it MUST NOT block the list.
 
-[SRCH-ENR-4] **Forward compatibility.** Once the graph implements [TG-FCT-6a] (verana-spec PR #62) and its snippets carry `serviceName`, `serviceType`, `serviceDescription`, `serviceLogoUri`, `operatorName`, `operatorLogoUri`, `operatorCountryCode`, and `serviceEndpoints[]`, the app MUST prefer these snippet fields and skip the resolver call for list rendering (feature-detected per hit: snippet field present and non-undefined). The endpoint badges of [SRCH-RES-1] then render from `snippet.serviceEndpoints[].type`. The resolver remains in use only for fields the snippet never carries (`registryId`, `address`) and for future detail views.
+[SRCH-ENR-4] **Forward compatibility.** Once the graph implements [TG-FCT-6a] (verana-spec PR #62) and its snippets carry `serviceName`, `serviceType`, `serviceDescription`, `serviceLogoUri`, `operatorName`, `operatorLogoUri`, `operatorCountryCode`, `serviceEndpoints[]`, and the `corporation*` trust signals, the app MUST prefer these snippet fields and skip the resolver and corporation calls for list rendering (feature-detected per hit: snippet field present and non-undefined). The endpoint badges of [SRCH-RES-1] then render from `snippet.serviceEndpoints[].type`. The resolver remains in use only for fields the snippet never carries (`registryId`, `address`) and for future detail views.
 
 Non-`Did` surfaces are rendered from the snippet alone; no enrichment call is made.
 
@@ -196,13 +198,14 @@ Each row is a **condensed, two-zone version of the verana.io `ProofOfTrustCard`*
 | [logo] Service Name          [trust chip] | [logo] [flag] Operator Name      |
 |        type (mono, muted)                 |        registryId (mono, muted)  |
 | description, clamped to 2 lines           |        address (muted, 1 line)   |
-| [DIDCOMM] [MCP] [A2A]  endpoint badges    |                                  |
-| did:webvh:... (mono, truncated, copy)     |                                  |
+| [DIDCOMM] [MCP] [A2A]  endpoint badges    | CORPORATION #8                   |
+| did:webvh:... (mono, truncated, copy)     | deposit 40 VNA - slashes 0       |
 +------------------------------------------------------------------------------+
 ```
 
 - **Left zone (SERVICE)**: `eyebrow` label "SERVICE"; square service logo (`logoUri`, 40-48 px, rounded, `bg-surface-2` fallback with initial letter); service `name` in Space Grotesk semibold; `type` as a mono muted line; `description` clamped to 2 lines; the DID in IBM Plex Mono, middle-truncated, with a copy-to-clipboard icon button.
 - **Right zone (OPERATED BY)**: `eyebrow` label "OPERATED BY"; operator logo/avatar (smaller than the service logo, per the ProofOfTrustCard convention); emoji country flag + operator `name`; `registryId` in mono muted (organizations); `address` muted, single line truncated (organizations). Personas show name + flag only.
+- **Corporation trust signals** (below the operator identity, per [SRCH-ENR-2a]): a mono muted block showing the owner `corporationId` (`CORPORATION #8`), `corporationDeposit` in VNA, and `corporationSlashedEvents`; when `corporationSlashedEvents > 0` the slash count renders in red and the block adds `corporationLastSlashedAtTime` (date) and `corporationSlashedValue` in VNA.
 - **Endpoint type badges** (SERVICE zone, between the description and the DID line): one mono `chip` per **deduplicated** service endpoint type of the DID Document — from `snippet.serviceEndpoints[].type` when present (per [SRCH-ENR-4]), else from `services[].type` of the enrichment resolve of [SRCH-ENR-2]. Display rules:
   - normalize the DIDComm entry labels: `DIDCommMessaging` and `did-communication` both render as a single `DIDCOMM` badge;
   - order: `DIDCOMM` first, then the remaining types alphabetically, uppercased (`A2A`, `LINKEDDOMAINS` rendered as `WEBSITE`, `MCP`, `VSAGENTADMINAPI` rendered as `ADMIN API`, unknown types verbatim);

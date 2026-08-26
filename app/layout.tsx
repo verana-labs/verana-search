@@ -29,9 +29,9 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Verana Search",
+  title: "VeranaGraph",
   description: "Search the Verana trust graph: verifiable services, ecosystems, corporations, credential schemas.",
-  applicationName: "Verana Search",
+  applicationName: "VeranaGraph",
 };
 
 export const viewport: Viewport = {
