@@ -1,0 +1,48 @@
+replicaCount: 1
+
+image:
+  repository: veranalabs/verana-search
+  tag: latest
+  pullPolicy: IfNotPresent
+
+env:
+  graphBaseUrl: https://graph.devnet.verana.network
+  resolverBaseUrl: https://idx.devnet.verana.network
+  networkLabel: Devnet
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: false
+  className: nginx
+  host: search.devnet.verana.network
+  tls:
+    enabled: true
+    secretName: verana-search-tls
+  annotations: {}
+
+# Smallest reliable defaults for the Next.js standalone server ([SRCH-CFG-3]).
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+probes:
+  liveness:
+    path: /api/health
+    initialDelaySeconds: 5
+    periodSeconds: 15
+  readiness:
+    path: /api/health
+    initialDelaySeconds: 3
+    periodSeconds: 10
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
