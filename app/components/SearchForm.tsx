@@ -28,7 +28,7 @@ export default function SearchForm({
   const [filtersOpen, setFiltersOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Focus on load; refocus with "/" ([Accessibility] in spec.md).
+  // Focus on load; refocus with "/" ([Accessibility] in the Verana Search spec).
   useEffect(() => {
     inputRef.current?.focus()
     function onKey(e: KeyboardEvent) {

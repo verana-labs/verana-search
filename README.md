@@ -1,6 +1,6 @@
 # verana-search
 
-Web interface for searching the Verana trust graph. See [spec.md](./spec.md) for the full specification.
+Web interface for searching the Verana trust graph. See the [Verana Search specification](https://github.com/verana-labs/verana-spec/blob/main/v4/verana-search/spec.md) for the full specification.
 
 A thin client over two public read APIs:
 
