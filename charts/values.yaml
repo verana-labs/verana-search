@@ -1,0 +1,61 @@
+# Global configuration for the application
+global:
+  domain: devnet.verana.network
+
+# General configuration
+name: verana-search
+host: search
+replicas: 1
+
+# Image configuration
+image:
+  pullPolicy: IfNotPresent
+  repository: ""
+  tag: ""
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3000
+  targetPort: 3000
+
+# Node scheduling preferences
+nodeSelector: {}
+
+# Environment variables consumed by the application ([SRCH-CFG-1]).
+# Runtime configuration: the same image serves any network.
+env:
+  GRAPH_BASE_URL: "https://graph.devnet.verana.network"
+  RESOLVER_BASE_URL: "https://idx.devnet.verana.network"
+  NETWORK_LABEL: "Devnet"
+
+# Additional env variables if needed (list of {name, value})
+extraEnv: []
+
+# Health probes ([SRCH-CFG-3])
+probes:
+  liveness:
+    path: /api/health
+    initialDelaySeconds: 5
+    periodSeconds: 15
+  readiness:
+    path: /api/health
+    initialDelaySeconds: 3
+    periodSeconds: 10
+
+# Smallest reliable defaults for the Next.js standalone server ([SRCH-CFG-3])
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "50m"
+  limits:
+    memory: "256Mi"
+    cpu: "250m"
+
+# Optional ingress configuration
+ingress:
+  enabled: true
+  host: "{{ .Values.host }}.{{ .Values.global.domain }}"
+  tlsSecret: public.{{ .Values.host }}.{{ .Values.global.domain }}-cert
+  public:
+    enableCors: true

@@ -1,0 +1,109 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      notify_tag:
+        description: "Release tag to (re)announce on Discord, e.g. v1.2.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Release PR
+        id: release
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-release:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.releases_created == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Docker login
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          username: ${{ secrets.DOCKER_HUB_LOGIN }}
+          password: ${{ secrets.DOCKER_HUB_PWD }}
+
+      - name: Build & push stable Docker images
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_HUB_LOGIN }}/verana-search:latest
+            ${{ secrets.DOCKER_HUB_LOGIN }}/verana-search:${{ needs.release-please.outputs.tag_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Log in to Docker Hub Helm Registry
+        run: |
+          echo "${{ secrets.DOCKER_HUB_PWD }}" | helm registry login -u "${{ secrets.DOCKER_HUB_LOGIN }}" --password-stdin docker.io
+
+      - name: Push Helm chart to Docker Hub OCI repo
+        run: |
+          CHART_NAME=$(grep '^name:' ./charts/Chart.yaml | awk '{print $2}')
+          helm dependency update ./charts
+          helm package ./charts --version ${{ needs.release-please.outputs.tag_name }} -d ./charts
+          helm push ./charts/$CHART_NAME-${{ needs.release-please.outputs.tag_name }}.tgz oci://docker.io/"${{ secrets.DOCKER_HUB_LOGIN }}"
+
+      - name: Publish Summary
+        run: |
+          echo "Docker Images" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- verana-search:latest" >> $GITHUB_STEP_SUMMARY
+          echo "- verana-search:${{ needs.release-please.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Helm Charts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- verana-search:${{ needs.release-please.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+
+  discord-notify:
+    needs: [release-please, docker-release]
+    if: needs.release-please.outputs.releases_created == 'true'
+    permissions:
+      contents: read
+    uses: 2060-io/organization/.github/workflows/discord-release-notify-call.yml@d199fdc55832f78f90158117a93d227709ca2746 # main
+    with:
+      tag_name: ${{ needs.release-please.outputs.tag_name }}
+    secrets:
+      DISCORD_UPDATES_WEBHOOK_URL: ${{ secrets.DISCORD_UPDATES_WEBHOOK_URL }}
+
+  discord-notify-manual:
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+    uses: 2060-io/organization/.github/workflows/discord-release-notify-call.yml@d199fdc55832f78f90158117a93d227709ca2746 # main
+    with:
+      tag_name: ${{ inputs.notify_tag }}
+    secrets:
+      DISCORD_UPDATES_WEBHOOK_URL: ${{ secrets.DISCORD_UPDATES_WEBHOOK_URL }}
