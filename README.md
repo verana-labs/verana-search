@@ -24,8 +24,8 @@ Health probe: `GET /api/health` (200 when up and configuration is valid).
 ## Development
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 # http://localhost:3000
 ```
 
@@ -58,6 +58,6 @@ The ingress host is `{host}.{global.domain}` (default `search.devnet.verana.netw
 
 Same pipeline as verana-frontend:
 
-- **CI** (`ci.yml`): 2060-io organization linter (with charts lint) plus a `next build` check.
+- **CI** (`ci.yml`): 2060-io organization linter — pnpm build, biome `check-format`, tsc `check-types`, tests, Helm chart lint.
 - **Dev pre-releases** (`dev-release.yml`): semantic-release on `main` publishes `vX.Y.Z-dev.N` GitHub pre-releases, the `veranalabs/verana-search` Docker image (`dev`, `vX-dev`, `vX.Y-dev`, `vX.Y.Z-dev.N`) and the Helm chart to `oci://docker.io/veranalabs`.
 - **Stable releases** (`stable-release.yml`): release-please cuts `vX.Y.Z` releases, pushes `latest` + `vX.Y.Z` image tags and the chart, and announces on Discord.

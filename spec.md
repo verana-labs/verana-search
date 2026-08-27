@@ -47,7 +47,7 @@ The chart MUST define liveness and readiness probes against a lightweight route 
 
 [SRCH-CFG-4] **CI/CD.** The repo MUST follow the verana-frontend release pipeline:
 
-- `ci.yml`: the 2060-io organization reusable linter workflow (with `enable-charts-lint: true`) plus a `next build` check, on pull requests and pushes to `main`.
+- `ci.yml`: the 2060-io organization reusable linter workflow on pull requests and pushes to `main`. It requires pnpm (`packageManager` pin + `pnpm-lock.yaml`) and the `build`, `check-format` (biome), `check-types` (tsc) and `test` scripts, and lints the Helm chart (`charts-dir: charts`).
 - `dev-release.yml`: semantic-release on `main` publishes `dev` prereleases; on each release it pushes the Docker image `veranalabs/verana-search` with tags `dev`, `vX-dev`, `vX.Y-dev`, `vX.Y.Z-dev.N`, and the Helm chart to `oci://docker.io/veranalabs` with versions `vX.Y-dev` and `vX.Y.Z-dev.N`.
 - `stable-release.yml`: release-please cuts stable releases; on release it pushes the image tags `latest` and `vX.Y.Z`, the chart at `vX.Y.Z`, and notifies Discord via the organization reusable workflow.
 

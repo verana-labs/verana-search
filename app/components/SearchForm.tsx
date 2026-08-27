@@ -1,19 +1,14 @@
-"use client";
+'use client'
 
-import { useEffect, useRef, useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faChevronDown,
-  faChevronUp,
-  faMagnifyingGlass,
-  faSliders,
-} from "@fortawesome/free-solid-svg-icons";
-import type { FacetEntry, FilterValue, SearchSurface } from "../../lib/types";
-import { GATE_SURFACES, SURFACE_LABELS } from "../../lib/filters";
-import type { QueryState } from "./SearchApp";
-import FilterPanel from "./FilterPanel";
+import { faChevronDown, faChevronUp, faMagnifyingGlass, faSliders } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { useEffect, useRef, useState } from 'react'
+import { GATE_SURFACES, SURFACE_LABELS } from '../../lib/filters'
+import type { FacetEntry, FilterValue, SearchSurface } from '../../lib/types'
+import FilterPanel from './FilterPanel'
+import type { QueryState } from './SearchApp'
 
-const SURFACES = Object.keys(SURFACE_LABELS) as SearchSurface[];
+const SURFACES = Object.keys(SURFACE_LABELS) as SearchSurface[]
 
 export default function SearchForm({
   query,
@@ -23,31 +18,31 @@ export default function SearchForm({
   onQueryChange,
   onSetFilter,
 }: {
-  query: QueryState;
-  facets: Record<string, FacetEntry[]>;
-  activeFilterCount: number;
-  onFreeTextChange: (text: string) => void;
-  onQueryChange: (patch: Partial<QueryState>) => void;
-  onSetFilter: (key: string, value: FilterValue | null) => void;
+  query: QueryState
+  facets: Record<string, FacetEntry[]>
+  activeFilterCount: number
+  onFreeTextChange: (text: string) => void
+  onQueryChange: (patch: Partial<QueryState>) => void
+  onSetFilter: (key: string, value: FilterValue | null) => void
 }) {
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Focus on load; refocus with "/" ([Accessibility] in spec.md).
   useEffect(() => {
-    inputRef.current?.focus();
+    inputRef.current?.focus()
     function onKey(e: KeyboardEvent) {
-      if (e.key === "/" && document.activeElement !== inputRef.current) {
-        e.preventDefault();
-        inputRef.current?.focus();
+      if (e.key === '/' && document.activeElement !== inputRef.current) {
+        e.preventDefault()
+        inputRef.current?.focus()
       }
     }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
-  const showUntrusted = GATE_SURFACES.includeUntrusted.includes(query.surface);
-  const showArchived = GATE_SURFACES.includeArchived.includes(query.surface);
+  const showUntrusted = GATE_SURFACES.includeUntrusted.includes(query.surface)
+  const showArchived = GATE_SURFACES.includeArchived.includes(query.surface)
 
   return (
     <div>
@@ -56,9 +51,7 @@ export default function SearchForm({
           aria-label="Search surface"
           className="input font-medium"
           value={query.surface}
-          onChange={(e) =>
-            onQueryChange({ surface: e.target.value as SearchSurface })
-          }
+          onChange={(e) => onQueryChange({ surface: e.target.value as SearchSurface })}
         >
           {SURFACES.map((s) => (
             <option key={s} value={s}>
@@ -91,24 +84,14 @@ export default function SearchForm({
         >
           <FontAwesomeIcon icon={faSliders} className="h-4 w-4" />
           Filters
-          {activeFilterCount > 0 && (
-            <span className="chip !py-0.5 !px-2">{activeFilterCount}</span>
-          )}
-          <FontAwesomeIcon
-            icon={filtersOpen ? faChevronUp : faChevronDown}
-            className="h-3 w-3"
-          />
+          {activeFilterCount > 0 && <span className="chip !py-0.5 !px-2">{activeFilterCount}</span>}
+          <FontAwesomeIcon icon={filtersOpen ? faChevronUp : faChevronDown} className="h-3 w-3" />
         </button>
       </div>
 
       {filtersOpen && (
         <div className="card mt-3 p-4">
-          <FilterPanel
-            surface={query.surface}
-            filters={query.filters}
-            facets={facets}
-            onSetFilter={onSetFilter}
-          />
+          <FilterPanel surface={query.surface} filters={query.filters} facets={facets} onSetFilter={onSetFilter} />
           {(showUntrusted || showArchived) && (
             <div className="mt-4 flex flex-wrap gap-5 border-t border-rule pt-4">
               {showUntrusted && (
@@ -116,9 +99,7 @@ export default function SearchForm({
                   <input
                     type="checkbox"
                     checked={query.includeUntrusted}
-                    onChange={(e) =>
-                      onQueryChange({ includeUntrusted: e.target.checked })
-                    }
+                    onChange={(e) => onQueryChange({ includeUntrusted: e.target.checked })}
                   />
                   Include untrusted
                 </label>
@@ -128,9 +109,7 @@ export default function SearchForm({
                   <input
                     type="checkbox"
                     checked={query.includeArchived}
-                    onChange={(e) =>
-                      onQueryChange({ includeArchived: e.target.checked })
-                    }
+                    onChange={(e) => onQueryChange({ includeArchived: e.target.checked })}
                   />
                   Include archived
                 </label>
@@ -140,5 +119,5 @@ export default function SearchForm({
         </div>
       )}
     </div>
-  );
+  )
 }

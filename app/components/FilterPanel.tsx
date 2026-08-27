@@ -1,7 +1,7 @@
-"use client";
+'use client'
 
-import type { FacetEntry, FilterValue, SearchSurface } from "../../lib/types";
-import { FILTERS, type FilterDef } from "../../lib/filters";
+import { FILTERS, type FilterDef } from '../../lib/filters'
+import type { FacetEntry, FilterValue, SearchSurface } from '../../lib/types'
 
 /**
  * Data-driven filter panel ([SRCH-FORM-3]): renders the [TG-FCT-3] filter set
@@ -14,12 +14,12 @@ export default function FilterPanel({
   facets,
   onSetFilter,
 }: {
-  surface: SearchSurface;
-  filters: Record<string, FilterValue>;
-  facets: Record<string, FacetEntry[]>;
-  onSetFilter: (key: string, value: FilterValue | null) => void;
+  surface: SearchSurface
+  filters: Record<string, FilterValue>
+  facets: Record<string, FacetEntry[]>
+  onSetFilter: (key: string, value: FilterValue | null) => void
 }) {
-  const defs = FILTERS[surface];
+  const defs = FILTERS[surface]
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -33,7 +33,7 @@ export default function FilterPanel({
         />
       ))}
     </div>
-  );
+  )
 }
 
 function Field({
@@ -42,49 +42,41 @@ function Field({
   facetValues,
   onChange,
 }: {
-  def: FilterDef;
-  value: FilterValue | undefined;
-  facetValues: FacetEntry[] | undefined;
-  onChange: (v: FilterValue | null) => void;
+  def: FilterDef
+  value: FilterValue | undefined
+  facetValues: FacetEntry[] | undefined
+  onChange: (v: FilterValue | null) => void
 }) {
-  const label = (
-    <span className="eyebrow block mb-1 !text-[0.62rem]">{def.label}</span>
-  );
+  const label = <span className="eyebrow block mb-1 !text-[0.62rem]">{def.label}</span>
 
   switch (def.kind) {
-    case "select": {
-      const options =
-        def.options ??
-        (facetValues ?? []).map((f) => String(f.value));
+    case 'select': {
+      const options = def.options ?? (facetValues ?? []).map((f) => String(f.value))
       return (
         <label className="block">
           {label}
           <select
             className="input w-full text-sm"
-            value={typeof value === "string" ? value : ""}
+            value={typeof value === 'string' ? value : ''}
             onChange={(e) => onChange(e.target.value || null)}
           >
             <option value="">Any</option>
             {options.map((o) => {
-              const count = facetValues?.find(
-                (f) => String(f.value) === o,
-              )?.count;
+              const count = facetValues?.find((f) => String(f.value) === o)?.count
               return (
                 <option key={o} value={o}>
                   {o}
-                  {count != null ? ` (${count})` : ""}
+                  {count != null ? ` (${count})` : ''}
                 </option>
-              );
+              )
             })}
           </select>
         </label>
-      );
+      )
     }
-    case "prefix": {
+    case 'prefix': {
       const current =
-        value && typeof value === "object" && "prefix" in value
-          ? ((value as { prefix?: string }).prefix ?? "")
-          : "";
+        value && typeof value === 'object' && 'prefix' in value ? ((value as { prefix?: string }).prefix ?? '') : ''
       return (
         <label className="block">
           {label}
@@ -93,24 +85,22 @@ function Field({
             className="input w-full text-sm"
             value={current}
             placeholder="e.g. CO-DC"
-            onChange={(e) =>
-              onChange(e.target.value ? { prefix: e.target.value } : null)
-            }
+            onChange={(e) => onChange(e.target.value ? { prefix: e.target.value } : null)}
           />
         </label>
-      );
+      )
     }
-    case "range": {
+    case 'range': {
       const current =
-        value && typeof value === "object" && "range" in value
+        value && typeof value === 'object' && 'range' in value
           ? ((value as { range?: { gte?: number; lte?: number } }).range ?? {})
-          : {};
+          : {}
       const update = (gte: string, lte: string) => {
-        const range: { gte?: number; lte?: number } = {};
-        if (gte !== "") range.gte = Number(gte);
-        if (lte !== "") range.lte = Number(lte);
-        onChange(Object.keys(range).length > 0 ? { range } : null);
-      };
+        const range: { gte?: number; lte?: number } = {}
+        if (gte !== '') range.gte = Number(gte)
+        if (lte !== '') range.lte = Number(lte)
+        onChange(Object.keys(range).length > 0 ? { range } : null)
+      }
       return (
         <div>
           {label}
@@ -119,25 +109,25 @@ function Field({
               type="number"
               className="input w-full text-sm"
               placeholder="min"
-              value={current.gte ?? ""}
-              onChange={(e) => update(e.target.value, String(current.lte ?? ""))}
+              value={current.gte ?? ''}
+              onChange={(e) => update(e.target.value, String(current.lte ?? ''))}
             />
             <input
               type="number"
               className="input w-full text-sm"
               placeholder="max"
-              value={current.lte ?? ""}
-              onChange={(e) => update(String(current.gte ?? ""), e.target.value)}
+              value={current.lte ?? ''}
+              onChange={(e) => update(String(current.gte ?? ''), e.target.value)}
             />
           </div>
         </div>
-      );
+      )
     }
-    case "tags": {
+    case 'tags': {
       const current =
-        value && typeof value === "object" && "containsAny" in value
-          ? ((value as { containsAny?: string[] }).containsAny ?? []).join(", ")
-          : "";
+        value && typeof value === 'object' && 'containsAny' in value
+          ? ((value as { containsAny?: string[] }).containsAny ?? []).join(', ')
+          : ''
       return (
         <label className="block">
           {label}
@@ -148,21 +138,17 @@ function Field({
             placeholder="e.g. MCP, DIDCommMessaging"
             onChange={(e) => {
               const tags = e.target.value
-                .split(",")
+                .split(',')
                 .map((t) => t.trim())
-                .filter(Boolean);
-              onChange(tags.length > 0 ? { containsAny: tags } : null);
+                .filter(Boolean)
+              onChange(tags.length > 0 ? { containsAny: tags } : null)
             }}
           />
         </label>
-      );
+      )
     }
-    case "multiselect":
-    case "text":
     default: {
-      const current = typeof value === "string" || typeof value === "number"
-        ? String(value)
-        : "";
+      const current = typeof value === 'string' || typeof value === 'number' ? String(value) : ''
       return (
         <label className="block">
           {label}
@@ -173,7 +159,7 @@ function Field({
             onChange={(e) => onChange(e.target.value || null)}
           />
         </label>
-      );
+      )
     }
   }
 }

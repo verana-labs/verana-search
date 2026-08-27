@@ -1,5 +1,5 @@
-import NetworkChip from "./NetworkChip";
-import ThemeToggle from "./ThemeToggle";
+import NetworkChip from './NetworkChip'
+import ThemeToggle from './ThemeToggle'
 
 export default function Header({ networkLabel }: { networkLabel: string }) {
   return (
@@ -15,5 +15,5 @@ export default function Header({ networkLabel }: { networkLabel: string }) {
         <ThemeToggle />
       </div>
     </header>
-  );
+  )
 }
