@@ -31,7 +31,7 @@ Normative requirements are prefixed `[SRCH-]`.
 
 [SRCH-CFG-2] **Container.** The app MUST be delivered as a versioned container image (Docker Hub, same packaging pattern as the other Verana frontends), and the endpoints of [SRCH-CFG-1] MUST be **runtime configuration of the container**, not build-time constants: the same image serves devnet, testnet, and mainnet by changing only its environment. For a Next.js build this means the values MUST NOT be baked in as `NEXT_PUBLIC_*` at build time; they are read server-side at startup (standalone output) and handed to the client (server component prop, or a tiny `/config` route), so that `docker run -e GRAPH_BASE_URL=... -e RESOLVER_BASE_URL=...` is sufficient. The container MUST log the resolved configuration at startup and MUST fail fast with a descriptive error when a REQUIRED variable is missing or malformed.
 
-[SRCH-CFG-3] **Helm.** The repo MUST ship a Helm chart (`helm/` or `charts/verana-search/`) that installs the app with `helm install`, exposing at minimum: `image.repository` / `image.tag`, `env.graphBaseUrl`, `env.resolverBaseUrl`, `env.networkLabel`, `replicaCount` (default `1`), ingress host/TLS settings, and `resources`. Default resources MUST be the smallest values that run the app reliably; for the Next.js standalone server:
+[SRCH-CFG-3] **Helm.** The repo MUST ship a Helm chart at `charts/` (chart name `verana-search-chart`, same layout as verana-frontend) that installs the app with `helm install`, exposing at minimum: `image.repository` / `image.tag` (defaulting to `veranalabs/verana-search` and the chart version), a flat `env:` map carrying the [SRCH-CFG-1] variables (`GRAPH_BASE_URL`, `RESOLVER_BASE_URL`, `NETWORK_LABEL`), `replicas` (default `1`), ingress host/TLS settings (`host` + `global.domain`, cert-manager `letsencrypt-prod`, ingress class `nginx`), and `resources`. Default resources MUST be the smallest values that run the app reliably; for the Next.js standalone server:
 
 ```yaml
 resources:
@@ -44,6 +44,14 @@ resources:
 ```
 
 The chart MUST define liveness and readiness probes against a lightweight route (e.g. `GET /api/health` returning 200 once the server is up and configuration is validated). Documentation for `docker run` and `helm install` MUST be provided in the README.
+
+[SRCH-CFG-4] **CI/CD.** The repo MUST follow the verana-frontend release pipeline:
+
+- `ci.yml`: the 2060-io organization reusable linter workflow (with `enable-charts-lint: true`) plus a `next build` check, on pull requests and pushes to `main`.
+- `dev-release.yml`: semantic-release on `main` publishes `dev` prereleases; on each release it pushes the Docker image `veranalabs/verana-search` with tags `dev`, `vX-dev`, `vX.Y-dev`, `vX.Y.Z-dev.N`, and the Helm chart to `oci://docker.io/veranalabs` with versions `vX.Y-dev` and `vX.Y.Z-dev.N`.
+- `stable-release.yml`: release-please cuts stable releases; on release it pushes the image tags `latest` and `vX.Y.Z`, the chart at `vX.Y.Z`, and notifies Discord via the organization reusable workflow.
+
+Third-party actions MUST be pinned to full commit SHAs (org policy); org-internal reusable workflows are exempt.
 
 ## Design
 
