@@ -1,4 +1,4 @@
-/** Endpoint type badge normalization, per [SRCH-RES-1] of the Verana Search spec (verana-spec/v4/verana-search). */
+/** Endpoint type badge normalization, per [SRCH-RES-1] of spec.md. */
 
 const LABELS: Record<string, string> = {
   didcommmessaging: 'DIDCOMM',

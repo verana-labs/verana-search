@@ -1,5 +1,5 @@
 /**
- * Runtime configuration, per [SRCH-CFG-1] / [SRCH-CFG-2] of the Verana Search spec (verana-spec/v4/verana-search).
+ * Runtime configuration, per [SRCH-CFG-1] / [SRCH-CFG-2] of spec.md.
  *
  * Read server-side from the environment at request time (the page is
  * force-dynamic), never baked at build time, so the same container image
