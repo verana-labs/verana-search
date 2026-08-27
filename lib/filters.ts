@@ -2,7 +2,7 @@ import type { SearchSurface } from './types'
 
 /**
  * Data-driven filter panel definitions: the [TG-FCT-3] filter set per
- * surface, per [SRCH-FORM-3] of the Verana Search spec (verana-spec/v4/verana-search).
+ * surface, per [SRCH-FORM-3] of spec.md.
  */
 
 export type FilterKind =
