@@ -55,6 +55,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
   const defaultFacetsRef = useRef<Set<string>>(new Set())
   // Serialize page loads: SCROLL-2 requires at most one page request in flight.
   const pageInFlightRef = useRef(false)
+  const limitRef = useRef(LIMIT_MIN)
 
   /** [SRCH-SCROLL-1] viewport-sized limit. */
   const computeLimit = useCallback((surface: SearchSurface): number => {
@@ -67,22 +68,19 @@ export default function SearchApp({ config }: { config: AppConfig }) {
     return Math.min(Math.max(Math.ceil(available / rowHeight) + OVERSCAN, LIMIT_MIN), LIMIT_MAX)
   }, [])
 
-  const buildRequest = useCallback(
-    (q: QueryState, pageCursor: string | null): SearchRequest => {
-      const req: SearchRequest = {
-        surface: q.surface,
-        limit: computeLimit(q.surface),
-      }
-      const text = q.freeText.trim()
-      if (text) req.freeText = text
-      if (Object.keys(q.filters).length > 0) req.filters = q.filters
-      if (pageCursor) req.cursor = pageCursor
-      if (q.includeUntrusted) req.includeUntrusted = true
-      if (q.includeArchived) req.includeArchived = true
-      return req
-    },
-    [computeLimit]
-  )
+  const buildRequest = useCallback((q: QueryState, pageCursor: string | null): SearchRequest => {
+    const req: SearchRequest = {
+      surface: q.surface,
+      limit: limitRef.current,
+    }
+    const text = q.freeText.trim()
+    if (text) req.freeText = text
+    if (Object.keys(q.filters).length > 0) req.filters = q.filters
+    if (pageCursor) req.cursor = pageCursor
+    if (q.includeUntrusted) req.includeUntrusted = true
+    if (q.includeArchived) req.includeArchived = true
+    return req
+  }, [])
 
   /** Runs a first-page query, replacing the list when the response lands. */
   const runQuery = useCallback(
@@ -95,6 +93,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
       setLoading(true)
       setError(null)
 
+      limitRef.current = computeLimit(q.surface)
       const req = buildRequest(q, null)
       // a filter narrows its own facet, so default-aggregated multi-selects take theirs from a request without it
       const multiKeys = FILTERS[q.surface]
@@ -153,7 +152,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
           setLoading(false)
         })
     },
-    [config, buildRequest]
+    [config, buildRequest, computeLimit]
   )
 
   /** [SRCH-SCROLL-2] next page via cursor. */
