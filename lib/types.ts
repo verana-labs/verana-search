@@ -10,7 +10,7 @@ export type FilterValue =
   | {
       eq?: string | number | boolean
       in?: Array<string | number | boolean>
-      range?: { gt?: number; gte?: number; lt?: number; lte?: number }
+      range?: { gt?: number | string; gte?: number | string; lt?: number | string; lte?: number | string }
       prefix?: string
       contains?: string
       containsAny?: string[]

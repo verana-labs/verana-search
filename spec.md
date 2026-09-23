@@ -102,14 +102,15 @@ An empty free-text input with no filters is a valid query: it lists everything o
 
 The collapsible panel exposes the **structured filters of [TG-FCT-3] for the selected surface** and nothing else. Filters render per operator type:
 
-- `eq` / `in` fields: multi-select (or single select where only `eq` is declared), populated where possible from the `facets` aggregations of the previous response (value + count), otherwise as free input.
-- `range` fields: min/max numeric pair.
-- `prefix`-capable fields (`legalJurisdiction`, `controllerJurisdiction`): text input, sent as `{ "prefix": <value> }`.
-- `contains` / `containsAny` (`Did.serviceTypes`): tag input.
+- `eq` / `in` fields: multi-select populated from the `facets` aggregations of the previous response (value + count) and the field's known values, with free input for values not listed. One selected value is sent as `eq`, several as `in`. A field's own filter narrows its facet to the selected values, so for each active multi-select the app sends one more request (the same payload with `limit: 1` and without that filter) and takes that field's options from its `facets`.
+- `eq`-only fields: text input, with the field's facet values (value + count) offered as suggestions when the response carries them. The boolean `Did.isCorporation` and `Did.isEcosystem` are an Any / Yes / No select, sent as `true` / `false`.
+- `range` fields: min/max numeric pair, one pair per role for the `Ecosystem` `participants[<role>]` field. `Corporation.deposit` is entered in VNA and sent as integer `uvna` per [TG-FCT-3]. The temporal `Corporation.lastSlashedAtTime` is a min/max date pair, sent as ISO 8601 date-times (start of the min day, end of the max day, UTC).
+- `prefix`-capable fields (`Did.operatorName`, `legalJurisdiction`, `controllerJurisdiction`): text input, sent as `{ "prefix": <value> }`.
+- `contains` / `containsAny` (`Did.serviceTypes`, `Did.ecosystemIds`): tag input, sent as `containsAny`.
 
 Surface switching re-renders the panel with that surface's filter set and clears filters that do not exist on the new surface.
 
-The panel also exposes the visibility-gate overrides where the spec allows them: `includeUntrusted` (checkbox, `Did` and `ServiceEndpoint` surfaces) and `includeArchived` (checkbox, `Ecosystem` and `CredentialSchema` surfaces). Non-overridable gates (trust-expiry) are not surfaced.
+The panel also exposes the visibility-gate overrides where the spec allows them: `includeUntrusted` (checkbox, `Did` and `ServiceEndpoint` surfaces) and `includeArchived` (checkbox, `Ecosystem` and `CredentialSchema` surfaces). The `Did.trusted` and `archived` filters are covered by these checkboxes and not rendered as fields. Non-overridable gates (trust-expiry) are not surfaced.
 
 ### [SRCH-FORM-4] Request shape
 
@@ -243,9 +244,9 @@ A snippet without `didCard` (earlier graph generation) renders as a single zone 
 - **CredentialSchema**: eyebrow "CREDENTIAL SCHEMA"; `title` and `description` when present (from the `schema` group or the flat fields), `id` (mono chip), the owning ecosystem id (`ecosystem.id` or `ecosystemId`), archived chip. Not DID-bound, so a single zone.
 - **ServiceEndpoint**: eyebrow "SERVICE ENDPOINT", `type` chip (`MCP`, `A2A`, ...), and the `serviceEndpoint` (mono, truncated): the string form as is, the `uri` of the object form, or one line per entry of the array form. The bound DID is `didId`.
 
-### [SRCH-RES-3] Facets sidebar (SHOULD)
+### [SRCH-RES-3] Facets bar (SHOULD)
 
-When the response's `facets` object is non-empty, the app SHOULD render the aggregations as clickable refinements (value + count) beside or above the list on wide viewports; clicking one sets the corresponding filter and re-queries. On narrow viewports facets fold into the filter panel.
+When the response's `facets` object is non-empty, the app SHOULD render the aggregations of the fields its filter panel exposes as clickable refinements (value + count) in a bar above the list on wide viewports. Clicking a value toggles it in that field's filter (added to or removed from a multi-select, set or cleared on a single-value field) and re-queries. Selected values are highlighted. On narrow viewports the bar is hidden and facets fold into the filter panel's selects.
 
 ## Accessibility
 

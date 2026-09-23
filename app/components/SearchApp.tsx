@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, searchGraph } from '../../lib/api'
 import type { AppConfig } from '../../lib/config'
+import { FILTERS } from '../../lib/filters'
 import type { FacetEntry, FilterValue, SearchHit, SearchRequest, SearchSurface } from '../../lib/types'
+import FacetBar from './FacetBar'
 import ResultList from './ResultList'
 import SearchForm from './SearchForm'
 
@@ -91,8 +93,22 @@ export default function SearchApp({ config }: { config: AppConfig }) {
       setLoading(true)
       setError(null)
 
-      searchGraph(config, buildRequest(q, null), controller.signal)
-        .then((res) => {
+      const req = buildRequest(q, null)
+      // a multi-select's own filter narrows its facet, so its options come from a request without that filter
+      const multiKeys = FILTERS[q.surface]
+        .filter((d) => d.kind === 'multiselect' && d.key in q.filters)
+        .map((d) => d.key)
+      Promise.all([
+        searchGraph(config, req, controller.signal),
+        ...multiKeys.map((key) =>
+          searchGraph(
+            config,
+            { ...req, limit: 1, filters: Object.fromEntries(Object.entries(q.filters).filter(([k]) => k !== key)) },
+            controller.signal
+          )
+        ),
+      ])
+        .then(([res, ...own]) => {
           if (generation !== generationRef.current) return // superseded
           const seen = new Set<string>()
           const deduped = res.hits.filter((h) => {
@@ -103,7 +119,12 @@ export default function SearchApp({ config }: { config: AppConfig }) {
           })
           seenRef.current = seen
           setHits(deduped)
-          setFacets(res.facets ?? {})
+          const facets = { ...res.facets }
+          multiKeys.forEach((key, i) => {
+            const options = own[i].facets?.[key]
+            if (options) facets[key] = options
+          })
+          setFacets(facets)
           setTotalCount(res.totalCount)
           setCursor(res.cursor)
           setLoading(false)
@@ -223,6 +244,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
         onQueryChange={onQueryChange}
         onSetFilter={setFilter}
       />
+      <FacetBar surface={query.surface} facets={facets} filters={query.filters} onSetFilter={setFilter} />
       <div ref={resultZoneRef} className="mt-6">
         <ResultList
           config={config}

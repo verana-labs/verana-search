@@ -1,6 +1,6 @@
 'use client'
 
-import { FILTERS, type FilterDef } from '../../lib/filters'
+import { FILTERS, type FilterDef, selectedValues, toggleValue } from '../../lib/filters'
 import type { FacetEntry, FilterValue, SearchSurface } from '../../lib/types'
 
 /**
@@ -50,30 +50,63 @@ function Field({
   const label = <span className="eyebrow block mb-1 !text-[0.62rem]">{def.label}</span>
 
   switch (def.kind) {
-    case 'select': {
-      const options = def.options ?? (facetValues ?? []).map((f) => String(f.value))
+    case 'multiselect': {
+      const selected = selectedValues(value)
+      const options = [...(def.options ?? []), ...(facetValues ?? []).map((f) => f.value), ...selected].filter(
+        (o, i, all) => all.findIndex((x) => String(x) === String(o)) === i
+      )
+      return (
+        <div>
+          {label}
+          {options.length > 0 && (
+            <div className="input max-h-32 overflow-y-auto p-2 space-y-1 text-sm">
+              {options.map((o) => {
+                const count = facetValues?.find((f) => String(f.value) === String(o))?.count
+                return (
+                  <label key={String(o)} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selected.some((s) => String(s) === String(o))}
+                      onChange={() => onChange(toggleValue(def, value, o))}
+                    />
+                    <span className="min-w-0 truncate">{String(o)}</span>
+                    {count != null && <span className="ml-auto font-mono text-xs text-muted">{count}</span>}
+                  </label>
+                )
+              })}
+            </div>
+          )}
+          {!def.options && (
+            <input
+              type="text"
+              className={`input w-full text-sm ${options.length > 0 ? 'mt-2' : ''}`}
+              placeholder="Add a value, press Enter"
+              onKeyDown={(e) => {
+                const v = e.currentTarget.value.trim()
+                if (e.key !== 'Enter' || !v) return
+                if (!selected.some((s) => String(s) === v)) onChange(toggleValue(def, value, v))
+                e.currentTarget.value = ''
+              }}
+            />
+          )}
+        </div>
+      )
+    }
+    case 'boolean':
       return (
         <label className="block">
           {label}
           <select
             className="input w-full text-sm"
-            value={typeof value === 'string' ? value : ''}
-            onChange={(e) => onChange(e.target.value || null)}
+            value={typeof value === 'boolean' ? String(value) : ''}
+            onChange={(e) => onChange(e.target.value === '' ? null : e.target.value === 'true')}
           >
             <option value="">Any</option>
-            {options.map((o) => {
-              const count = facetValues?.find((f) => String(f.value) === o)?.count
-              return (
-                <option key={o} value={o}>
-                  {o}
-                  {count != null ? ` (${count})` : ''}
-                </option>
-              )
-            })}
+            <option value="true">Yes</option>
+            <option value="false">No</option>
           </select>
         </label>
       )
-    }
     case 'prefix': {
       const current =
         value && typeof value === 'object' && 'prefix' in value ? ((value as { prefix?: string }).prefix ?? '') : ''
@@ -84,40 +117,53 @@ function Field({
             type="text"
             className="input w-full text-sm"
             value={current}
-            placeholder="e.g. CO-DC"
+            placeholder={def.placeholder}
             onChange={(e) => onChange(e.target.value ? { prefix: e.target.value } : null)}
           />
         </label>
       )
     }
-    case 'range': {
+    case 'range':
+    case 'dateRange': {
+      const temporal = def.kind === 'dateRange'
       const current =
         value && typeof value === 'object' && 'range' in value
-          ? ((value as { range?: { gte?: number; lte?: number } }).range ?? {})
+          ? ((value as { range?: { gte?: number | string; lte?: number | string } }).range ?? {})
           : {}
+      const toWire = (input: string, end: boolean): number | string => {
+        if (temporal) return `${input}T${end ? '23:59:59.999' : '00:00:00'}Z`
+        return def.scale ? Math.round(Number(input) * def.scale) : Number(input)
+      }
+      const toInput = (wire: number | string | undefined): number | string => {
+        if (wire === undefined) return ''
+        if (temporal) return String(wire).slice(0, 10)
+        return def.scale ? Number(wire) / def.scale : wire
+      }
       const update = (gte: string, lte: string) => {
-        const range: { gte?: number; lte?: number } = {}
-        if (gte !== '') range.gte = Number(gte)
-        if (lte !== '') range.lte = Number(lte)
+        const range: { gte?: number | string; lte?: number | string } = {}
+        if (gte !== '') range.gte = toWire(gte, false)
+        if (lte !== '') range.lte = toWire(lte, true)
         onChange(Object.keys(range).length > 0 ? { range } : null)
       }
       return (
         <div>
           {label}
-          <div className="flex gap-2">
+          <div className={`flex gap-2 ${temporal ? 'flex-col' : ''}`}>
             <input
-              type="number"
+              type={temporal ? 'date' : 'number'}
+              min={def.scale ? 0 : undefined}
               className="input w-full text-sm"
               placeholder="min"
-              value={current.gte ?? ''}
-              onChange={(e) => update(e.target.value, String(current.lte ?? ''))}
+              value={toInput(current.gte)}
+              onChange={(e) => update(e.target.value, String(toInput(current.lte)))}
             />
             <input
-              type="number"
+              type={temporal ? 'date' : 'number'}
+              min={def.scale ? 0 : undefined}
               className="input w-full text-sm"
               placeholder="max"
-              value={current.lte ?? ''}
-              onChange={(e) => update(String(current.gte ?? ''), e.target.value)}
+              value={toInput(current.lte)}
+              onChange={(e) => update(String(toInput(current.gte)), e.target.value)}
             />
           </div>
         </div>
@@ -135,7 +181,7 @@ function Field({
             type="text"
             className="input w-full text-sm"
             value={current}
-            placeholder="e.g. MCP, DIDCommMessaging"
+            placeholder={def.placeholder}
             onChange={(e) => {
               const tags = e.target.value
                 .split(',')
@@ -149,15 +195,24 @@ function Field({
     }
     default: {
       const current = typeof value === 'string' || typeof value === 'number' ? String(value) : ''
+      const listId = facetValues?.length ? `facet-${def.key}` : undefined
       return (
         <label className="block">
           {label}
           <input
             type="text"
+            list={listId}
             className="input w-full text-sm"
             value={current}
             onChange={(e) => onChange(e.target.value || null)}
           />
+          {listId && (
+            <datalist id={listId}>
+              {facetValues?.map((f) => (
+                <option key={String(f.value)} value={String(f.value)} label={`${f.value} (${f.count})`} />
+              ))}
+            </datalist>
+          )}
         </label>
       )
     }
