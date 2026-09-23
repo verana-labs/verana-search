@@ -223,6 +223,9 @@ function openResolverJson(config: AppConfig, did: string): void {
     .then((json) => {
       w?.document.write(`<pre>${JSON.stringify(json, null, 2).replace(/</g, '&lt;')}</pre>`)
     })
+    .catch(() => {
+      w?.document.write('Could not load the resolver data.')
+    })
 }
 
 export default function DidRow({
