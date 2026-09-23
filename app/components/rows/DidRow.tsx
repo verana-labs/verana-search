@@ -190,12 +190,12 @@ export function OperatorZone({ card, loading = false }: { card: DidCard | null; 
           <p className="mt-1">
             deposit {formatVna(card.corporationDeposit) ?? 'n/a'}
             <span className="mx-1.5">·</span>
-            <span className={(card.corporationSlashedEvents ?? 0) > 0 ? 'text-[#ef4444]' : ''}>
+            <span className={(card.corporationSlashedEvents ?? 0) > 0 ? 'text-danger' : ''}>
               slashes {card.corporationSlashedEvents ?? 'n/a'}
             </span>
           </p>
           {(card.corporationSlashedEvents ?? 0) > 0 && (
-            <p className="mt-0.5 text-[#ef4444]">
+            <p className="mt-0.5 text-danger">
               last slashed {card.corporationLastSlashedAtTime ? card.corporationLastSlashedAtTime.slice(0, 10) : 'n/a'}
               <span className="mx-1.5">·</span>
               slashed {formatVna(card.corporationSlashedValue) ?? 'n/a'}
@@ -205,6 +205,24 @@ export function OperatorZone({ card, loading = false }: { card: DidCard | null; 
       )}
     </div>
   )
+}
+
+function openResolverJson(config: AppConfig, did: string): void {
+  const w = window.open('', '_blank')
+  fetch(`${config.resolverBaseUrl}/v4/verifiable-trust/resolve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      did,
+      ecsCredentials: true,
+      services: true,
+      presentations: true,
+    }),
+  })
+    .then((r) => r.json())
+    .then((json) => {
+      w?.document.write(`<pre>${JSON.stringify(json, null, 2).replace(/</g, '&lt;')}</pre>`)
+    })
 }
 
 export default function DidRow({
@@ -221,7 +239,6 @@ export default function DidRow({
   const [state, setState] = useState<CardState>(
     snippetCard ? { status: 'ready', card: snippetCard } : { status: 'loading' }
   )
-  const [showRaw, setShowRaw] = useState(false)
 
   // [SRCH-ENR-2]: resolver enrichment when the snippet has no card fields.
   useEffect(() => {
@@ -247,7 +264,13 @@ export default function DidRow({
   const overflow = badges.length - shownBadges.length
 
   return (
-    <article className="card p-5">
+    <article
+      className="card p-5 cursor-pointer"
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest('a, button') || window.getSelection()?.toString()) return
+        openResolverJson(config, did)
+      }}
+    >
       <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-5">
         {/* SERVICE zone */}
         <div>
@@ -309,7 +332,7 @@ export default function DidRow({
               type="button"
               className="font-mono text-xs text-muted hover:text-ink truncate"
               title={did}
-              onClick={() => setShowRaw((v) => !v)}
+              onClick={() => openResolverJson(config, did)}
             >
               {truncateDid(did)}
             </button>
@@ -319,36 +342,6 @@ export default function DidRow({
 
         <OperatorZone card={card} loading={state.status === 'loading'} />
       </div>
-
-      {/* v1 detail: raw resolver link/drawer ([SRCH-RES-1]) */}
-      {showRaw && (
-        <div className="mt-4 border-t border-rule pt-3">
-          <a
-            className="text-sm text-accent hover:underline"
-            href={`${config.resolverBaseUrl}/v4/verifiable-trust/resolve`}
-            onClick={(e) => {
-              e.preventDefault()
-              const w = window.open('', '_blank')
-              fetch(`${config.resolverBaseUrl}/v4/verifiable-trust/resolve`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  did,
-                  ecsCredentials: true,
-                  services: true,
-                  presentations: true,
-                }),
-              })
-                .then((r) => r.json())
-                .then((json) => {
-                  w?.document.write(`<pre>${JSON.stringify(json, null, 2).replace(/</g, '&lt;')}</pre>`)
-                })
-            }}
-          >
-            Open resolver data
-          </a>
-        </div>
-      )}
     </article>
   )
 }

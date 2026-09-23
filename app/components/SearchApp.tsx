@@ -45,7 +45,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
   const [cursor, setCursor] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [error, setError] = useState<{ code: string | null; message: string } | null>(null)
+  const [error, setError] = useState<Error | null>(null)
 
   const resultZoneRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -144,11 +144,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
         .catch((e: unknown) => {
           if (controller.signal.aborted) return
           if (generation !== generationRef.current) return
-          const err = e as ApiError
-          setError({
-            code: err instanceof ApiError ? err.code : null,
-            message: err.message ?? 'Request failed',
-          })
+          setError(e as Error)
           setLoading(false)
         })
     },
@@ -182,10 +178,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
           // rows until the fresh first page lands.
           runQuery(query)
         } else {
-          setError({
-            code: e instanceof ApiError ? e.code : null,
-            message: (e as Error).message ?? 'Request failed',
-          })
+          setError(e as Error)
         }
       })
       .finally(() => {

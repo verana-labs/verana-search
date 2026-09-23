@@ -60,7 +60,7 @@ Third-party actions MUST be pinned to full commit SHAs (org policy); org-interna
 The app MUST reuse the **verana.io-website "Protocol Grid" design system** verbatim: same tokens, same fonts, same light/dark mechanism. Concretely (from `verana.io-website/app/globals.css`):
 
 - **Stack**: Next.js + Tailwind v4, tokens declared in `@theme` so utilities (`bg-bg`, `bg-surface`, `text-ink`, `text-muted`, `border-rule`, `bg-primary`, `text-accent`, `text-success`, ...) are generated.
-- **Brand palette**: primary `#763ef0` (Verana purple), primary-bright `#8c5bff`, accent `#2e6be6` (Electric Blue; `#1f57c9` in light for AA), success `#29c68c` (Signal Green; success-ink `#0e7a57` in light).
+- **Brand palette**: primary `#763ef0` (Verana purple), primary-bright `#8c5bff`, accent `#2e6be6` (Electric Blue; `#1f57c9` in light for AA), success `#29c68c` (Signal Green; success-ink `#0e7a57` in light), danger `#f87171` (`#b91c1c` in light, a search-only addition for the slash details of [SRCH-RES-1], AA in both themes).
 - **Surfaces (dark-first)**: bg `#0b0b12`, surface `#151824`, surface-2 `#1f2331`, rule `#2a2e3d`, ink `#ffffff`, muted `#8b94a5` — re-bound for light mode as in verana.io (`#ffffff` / `#f4f5f8` / `#eceef3` / `#e3e6ec` / `#0b0b12` / `#566071`).
 - **Type**: Space Grotesk for display (`.display`), Inter for body, IBM Plex Mono for eyebrows/chips/DIDs (`.eyebrow`, `.chip`).
 - **Theme switching**: `[data-theme="dark"|"light"]` on the root element, default follows the OS with dark fallback, set pre-paint exactly as verana.io does; a header toggle persists the choice.
