@@ -197,6 +197,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
 
   // runs at change time, not when the debounce fires, so the old query's cursor never pairs with the new query
   const beginNewQuery = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
     abortRef.current?.abort()
     generationRef.current++
     setCursor(null)
