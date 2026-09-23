@@ -13,7 +13,7 @@ export function badgeLabel(type: string): string {
 }
 
 /**
- * Deduplicated, ordered badge labels: DIDCOMM first, then alphabetical.
+ * Deduplicated, ordered badge labels: DIDCOMM first, then alphabetical by uppercased raw type.
  * Returns [labels, rawTypeByLabel] so a click can set the raw-type filter.
  */
 export function badgeList(types: string[]): {
@@ -27,7 +27,13 @@ export function badgeList(types: string[]): {
   }
   return [...seen.entries()]
     .map(([label, rawType]) => ({ label, rawType }))
-    .sort((a, b) => (a.label === 'DIDCOMM' ? -1 : b.label === 'DIDCOMM' ? 1 : a.label.localeCompare(b.label)))
+    .sort((a, b) =>
+      a.label === 'DIDCOMM'
+        ? -1
+        : b.label === 'DIDCOMM'
+          ? 1
+          : a.rawType.toUpperCase().localeCompare(b.rawType.toUpperCase())
+    )
 }
 
 export const MAX_BADGES = 5
