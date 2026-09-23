@@ -92,7 +92,7 @@
       }
     },
     {
-      "includes": ["lib/config.ts", "app/api/**"],
+      "includes": ["lib/config.ts", "app/api/**", "instrumentation.ts"],
       "linter": {
         "rules": {
           "suspicious": {
