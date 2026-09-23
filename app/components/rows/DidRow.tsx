@@ -335,6 +335,7 @@ export default function DidRow({
               type="button"
               className="font-mono text-xs text-muted hover:text-ink truncate"
               title={did}
+              aria-label={`Open resolver data for ${did}`}
               onClick={() => openResolverJson(config, did)}
             >
               {truncateDid(did)}
