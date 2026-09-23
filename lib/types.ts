@@ -63,6 +63,15 @@ export type DidSnippetCorporation = {
   slashedValue: string | null
 }
 
+/** TG-FCT-6b `didCard` group, the bound DID of an Ecosystem, Corporation or ServiceEndpoint hit. */
+export type DidCardSnippet = {
+  did: string
+  trusted: boolean
+  isTrustExpired: boolean
+  service: DidSnippetService | null
+  operator: DidSnippetOperator | null
+}
+
 /**
  * Did-surface snippet. Three graph generations are feature-detected per hit ([SRCH-ENR-4]):
  * the TG-FCT-6b groups (`service`, `operator`, `corporation`, `endpoints`, `ecosystems`),
