@@ -91,6 +91,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
       const controller = new AbortController()
       abortRef.current = controller
       const generation = ++generationRef.current
+      setCursor(null)
       setLoading(true)
       setError(null)
 
@@ -162,7 +163,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
     const generation = generationRef.current
     setLoadingMore(true)
 
-    searchGraph(config, buildRequest(query, cursor))
+    searchGraph(config, buildRequest(query, cursor), abortRef.current?.signal)
       .then((res) => {
         if (generation !== generationRef.current) return // superseded
         const fresh = res.hits.filter((h) => {
@@ -194,9 +195,19 @@ export default function SearchApp({ config }: { config: AppConfig }) {
       })
   }, [config, buildRequest, cursor, query, runQuery])
 
+  // runs at change time, not when the debounce fires, so the old query's cursor never pairs with the new query
+  const beginNewQuery = useCallback(() => {
+    abortRef.current?.abort()
+    generationRef.current++
+    setCursor(null)
+    setLoading(true)
+    window.scrollTo({ top: 0 })
+  }, [])
+
   /** Form change entry points ([SRCH-FORM-2]). */
   const onFreeTextChange = useCallback(
     (freeText: string) => {
+      beginNewQuery()
       setQuery((prev) => {
         const next = { ...prev, freeText }
         if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -204,11 +215,12 @@ export default function SearchApp({ config }: { config: AppConfig }) {
         return next
       })
     },
-    [runQuery]
+    [beginNewQuery, runQuery]
   )
 
   const onQueryChange = useCallback(
     (patch: Partial<QueryState>) => {
+      beginNewQuery()
       setQuery((prev) => {
         const next = { ...prev, ...patch }
         if (patch.surface && patch.surface !== prev.surface) {
@@ -220,7 +232,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
         return next
       })
     },
-    [runQuery]
+    [beginNewQuery, runQuery]
   )
 
   // Initial query on mount.
@@ -232,6 +244,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
   // Convenience: a badge or facet click sets a filter.
   const setFilter = useCallback(
     (key: string, value: FilterValue | null) => {
+      beginNewQuery()
       setQuery((prev) => {
         const filters = { ...prev.filters }
         if (value === null) delete filters[key]
@@ -241,7 +254,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
         return next
       })
     },
-    [runQuery]
+    [beginNewQuery, runQuery]
   )
 
   const activeFilterCount = useMemo(() => Object.keys(query.filters).length, [query.filters])
