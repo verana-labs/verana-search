@@ -10,7 +10,7 @@ export type FilterValue =
   | {
       eq?: string | number | boolean
       in?: Array<string | number | boolean>
-      range?: { gt?: number; gte?: number; lt?: number; lte?: number }
+      range?: { gt?: number | string; gte?: number | string; lt?: number | string; lte?: number | string }
       prefix?: string
       contains?: string
       containsAny?: string[]
@@ -61,6 +61,15 @@ export type DidSnippetCorporation = {
   slashedEvents: number | null
   lastSlashedAtTime: string | null
   slashedValue: string | null
+}
+
+/** TG-FCT-6b `didCard` group, the bound DID of an Ecosystem, Corporation or ServiceEndpoint hit. */
+export type DidCardSnippet = {
+  did: string
+  trusted: boolean
+  isTrustExpired: boolean
+  service: DidSnippetService | null
+  operator: DidSnippetOperator | null
 }
 
 /**

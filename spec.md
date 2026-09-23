@@ -102,14 +102,15 @@ An empty free-text input with no filters is a valid query: it lists everything o
 
 The collapsible panel exposes the **structured filters of [TG-FCT-3] for the selected surface** and nothing else. Filters render per operator type:
 
-- `eq` / `in` fields: multi-select (or single select where only `eq` is declared), populated where possible from the `facets` aggregations of the previous response (value + count), otherwise as free input.
-- `range` fields: min/max numeric pair.
-- `prefix`-capable fields (`legalJurisdiction`, `controllerJurisdiction`): text input, sent as `{ "prefix": <value> }`.
-- `contains` / `containsAny` (`Did.serviceTypes`): tag input.
+- `eq` / `in` fields: multi-select populated from the `facets` aggregations of the previous response (value + count) and the field's known values, with free input for values not listed. One selected value is sent as `eq`, several as `in`. A field's own filter narrows its facet to the selected values, so for each active multi-select that the graph aggregates by default (its facet came back on an earlier response that did not filter on it) the app sends one more request (the same payload with `limit: 1` and without that filter) and takes that field's options from its `facets`.
+- `eq`-only fields: text input, with the field's facet values (value + count) offered as suggestions when the response carries them. The boolean `Did.isCorporation` and `Did.isEcosystem` are an Any / Yes / No select, sent as `true` / `false`.
+- `range` fields: min/max numeric pair, one pair per role for the `Ecosystem` `participants[<role>]` field. `Corporation.deposit` is entered in VNA and sent as integer `uvna` per [TG-FCT-3]. The temporal `Corporation.lastSlashedAtTime` is a min/max date pair, sent as ISO 8601 date-times (start of the min day, end of the max day, UTC).
+- `prefix`-capable fields (`Did.operatorName`, `legalJurisdiction`, `controllerJurisdiction`): text input, sent as `{ "prefix": <value> }`.
+- `contains` / `containsAny` (`Did.serviceTypes`, `Did.ecosystemIds`): tag input, sent as `containsAny`.
 
 Surface switching re-renders the panel with that surface's filter set and clears filters that do not exist on the new surface.
 
-The panel also exposes the visibility-gate overrides where the spec allows them: `includeUntrusted` (checkbox, `Did` and `ServiceEndpoint` surfaces) and `includeArchived` (checkbox, `Ecosystem` and `CredentialSchema` surfaces). Non-overridable gates (trust-expiry) are not surfaced.
+The panel also exposes the visibility-gate overrides where the spec allows them: `includeUntrusted` (checkbox, `Did` and `ServiceEndpoint` surfaces) and `includeArchived` (checkbox, `Ecosystem` and `CredentialSchema` surfaces). The `Did.trusted` and `archived` filters are covered by these checkboxes and not rendered as fields. Non-overridable gates (trust-expiry) are not surfaced.
 
 ### [SRCH-FORM-4] Request shape
 
@@ -160,11 +161,11 @@ There is **no pagination UI**. Loading is cursor-driven, per [TG-FCT-7]:
 
 ## Result Enrichment
 
-### [SRCH-ENR-1] Why enrichment
+### [SRCH-ENR-1] When enrichment runs
 
-The devnet graph currently returns the pre-[TG-FCT-6a] minimum snippet for `Did` hits (`did`, `lastObservedAtTime`, `isTrustExpired`, `trusted`, `pattern`, `operatorKind`, `corporationId`) with **no ECS credential data**, so a `Did` row cannot be rendered from the search response alone.
+A `Did` hit carries the [TG-FCT-6a] core (`did`, `lastObservedAtTime`, `isTrustExpired`, `trusted`, `isCorporation`, `isEcosystem`) and, because the app sends no `snippet` selector, the [TG-FCT-6b] default groups: `service` (with `service.pattern`), `operator` (with `operator.kind`), `corporation` (with `corporation.id`) and `endpoints`. That renders a `Did` row from the search response alone ([SRCH-ENR-4]), so the resolver and corporation calls of [SRCH-ENR-2] and [SRCH-ENR-2a] are a fallback. They run only for a hit of the earlier graph generation whose snippet is the flat minimum (`did`, `lastObservedAtTime`, `isTrustExpired`, `trusted`, `pattern`, `operatorKind`, `corporationId`) with **no ECS credential data**.
 
-[SRCH-ENR-2] For each `Did` hit, the app MUST call the resolver:
+[SRCH-ENR-2] For a `Did` hit that takes the fallback of [SRCH-ENR-1] (a flat minimum snippet without the card data of [SRCH-ENR-4]), the app MUST call the resolver:
 
 ```json
 POST {RESOLVER_BASE_URL}/v4/verifiable-trust/resolve
@@ -184,11 +185,11 @@ and, from `ecsCredentials[]`:
 
 [SRCH-ENR-2a] **Owner-Corporation trust signals.** For each `Did` hit the app MUST also surface the owner Corporation's trust signals: `corporationId`, `corporationDeposit`, `corporationSlashedEvents` (`0` when never slashed), `corporationLastSlashedAtTime` and `corporationSlashedValue` (`null` when never slashed). Source: the snippet when it carries the card data per [SRCH-ENR-4] (the [TG-FCT-6b] `corporation` group, or the flat `corporation*` fields); otherwise one indexer call per owner Corporation, `GET {RESOLVER_BASE_URL}/v4/corporation/get/{corporationId}` (cached by `corporationId`, shared across hits of the same Corporation), mapping `deposit` → `corporationDeposit`, `slash_count` → `corporationSlashedEvents`, `last_slashed` → `corporationLastSlashedAtTime`, `slashed_deposit` → `corporationSlashedValue`. Coin amounts are displayed in VNA (uvna / 10^6), whether they arrive as Coin strings (`"40000000uvna"`) or micro-denom numbers.
 
-[SRCH-ENR-3] Enrichment mechanics:
+[SRCH-ENR-3] Enrichment mechanics (the fallback of [SRCH-ENR-1]):
 
 - Enrichment runs **per rendered row, concurrently**, bounded to at most 6 in-flight resolver calls; rows render immediately with the snippet data and skeleton placeholders for the credential fields, then fill in as resolves land (no layout shift beyond the reserved placeholder areas).
 - Responses MUST be **cached in memory keyed by `(did, lastObservedAtTime)`**, so re-queries, scroll-back, and shared operator DIDs (pattern B parents) resolve at most once per observation.
-- A failed resolve degrades gracefully: the row keeps the DID, trust chip, and pattern, and shows "details unavailable" in place of the credential fields; it MUST NOT block the list.
+- A failed resolve degrades gracefully: the row keeps the DID and the trust chip from the snippet core, and shows "details unavailable" in place of the credential fields. It MUST NOT block the list.
 
 [SRCH-ENR-4] **Snippet-first rendering.** When a `Did` snippet carries the card data, the app MUST render from it and skip the resolver and corporation calls for list rendering, feature-detected per hit. Two graph generations qualify: the [TG-FCT-6b] groups (`service`, `operator`, `corporation`, `endpoints`, and `ecosystems` when projected, detected by `service` being present) and the earlier flat fields (`serviceName`, `serviceType`, `serviceDescription`, `serviceLogoUri`, `operatorName`, `operatorLogoUri`, `operatorCountryCode`, `serviceEndpoints[]`, the `corporation*` signals, detected by `serviceName` being present). The endpoint badges of [SRCH-RES-1] render from `endpoints[].type` or `serviceEndpoints[].type`. The entity badges read `isCorporation` and `isEcosystem` (the ecosystem ids come from the `ecosystems` group when the response carries it). The app sends no `snippet` selector, so the graph's default projection applies. The resolver remains in use for the minimum snippet and for future detail views.
 
@@ -213,16 +214,16 @@ Each row is a **condensed, two-zone version of the verana.io `ProofOfTrustCard`*
 +------------------------------------------------------------------------------+
 ```
 
-- **Left zone (SERVICE)**: `eyebrow` label "SERVICE"; square service logo (`logoUri`, 40-48 px, rounded, `bg-surface-2` fallback with initial letter); service `name` in Space Grotesk semibold; `type` as a mono muted line; `description` clamped to 2 lines; the DID in IBM Plex Mono, middle-truncated, with a copy-to-clipboard icon button.
-- **Right zone (OPERATED BY)**: `eyebrow` label "OPERATED BY"; operator logo/avatar (smaller than the service logo, per the ProofOfTrustCard convention); emoji country flag + operator `name`; `registryId` in mono muted (organizations); `address` muted, single line truncated (organizations). Personas show name + flag only.
-- **Corporation trust signals** (below the operator identity, per [SRCH-ENR-2a]): a mono muted block showing the owner `corporationId` (`CORPORATION #8`), `corporationDeposit` in VNA, and `corporationSlashedEvents`; when `corporationSlashedEvents > 0` the slash count renders in red and the block adds `corporationLastSlashedAtTime` (date) and `corporationSlashedValue` in VNA.
+- **Left zone (SERVICE)**, from the `service` group and the core `did`: `eyebrow` label "SERVICE"; square service logo (`logoUri`, 40-48 px, rounded, `bg-surface-2` fallback with initial letter); service `name` in Space Grotesk semibold; `type` as a mono muted line; `description` clamped to 2 lines; the DID in IBM Plex Mono, middle-truncated, with a copy-to-clipboard icon button.
+- **Right zone (OPERATED BY)**, from the `operator` group: `eyebrow` label "OPERATED BY"; operator logo/avatar (smaller than the service logo, per the ProofOfTrustCard convention); emoji country flag + operator `name`; `registryId` in mono muted (organizations); `address` muted, single line truncated (organizations). Personas show name + flag only.
+- **Corporation trust signals** (below the operator identity, per [SRCH-ENR-2a]): a mono muted block from the `corporation` group showing `corporation.id` (`CORPORATION #8`), `deposit` in VNA, and `slashedEvents`. When `slashedEvents > 0` the slash count renders in red and the block adds `lastSlashedAtTime` (date) and `slashedValue` in VNA. On the flat fallback the same values come from the `corporation*` signals of [SRCH-ENR-2a].
 - **Endpoint type badges** (SERVICE zone, between the description and the DID line): one mono `chip` per **deduplicated** service endpoint type of the DID Document — from `snippet.endpoints[].type` or `snippet.serviceEndpoints[].type` when present (per [SRCH-ENR-4]), else from `services[].type` of the enrichment resolve of [SRCH-ENR-2]. Display rules:
   - normalize the DIDComm entry labels: `DIDCommMessaging` and `did-communication` both render as a single `DIDCOMM` badge;
   - order: `DIDCOMM` first, then the remaining types alphabetically, uppercased (`A2A`, `LINKEDDOMAINS` rendered as `WEBSITE`, `MCP`, `VSAGENTADMINAPI` rendered as `ADMIN API`, unknown types verbatim);
   - at most 5 badges are shown; overflow collapses into a `+N` chip whose tooltip lists the rest;
   - badges are neutral (`bg-surface-2`, `text-muted`, `border-rule`), not colored: they state protocol reachability ("which protocols can I talk to it with"), not trust;
   - clicking a badge sets the `Did.serviceTypes` `containsAny` filter to that type and re-queries (same behaviour as a facet refinement per [SRCH-RES-3]).
-- **Trust chip** (top right of the SERVICE zone): Signal-Green `chip` "VERIFIED" when `trusted && !isTrustExpired`; muted chip "UNTRUSTED" when `includeUntrusted` surfaced a non-trusted DID. `pattern` and `operatorKind` are not shown as chips (they are implicit in the card content).
+- **Trust chip** (top right of the SERVICE zone): Signal-Green `chip` "VERIFIED" when `trusted && !isTrustExpired`; muted chip "UNTRUSTED" when `includeUntrusted` surfaced a non-trusted DID. `service.pattern` and `operator.kind` (`pattern` and `operatorKind` on the flat fallback) are not shown as chips (they are implicit in the card content).
 - **Entity badges** (left of the trust chip): a purple `chip` "CORPORATION" when the DID is the declared DID of a `Corporation` entry, and a purple `chip` "ECOSYSTEM" when the DID controls one or more Ecosystems (tooltip lists the ecosystem ids when the response carries them). Sourced per [SRCH-ENR-2] (`isCorporation` / `isEcosystem` / `ecosystemIds`).
 - On small widths the two zones stack vertically, SERVICE first.
 - The row is clickable. v1: opens the DID's resolver JSON in a new tab (`{RESOLVER_BASE_URL}/v4/verifiable-trust/resolve` result rendered raw or via a minimal drawer). A dedicated detail page is out of scope for v1.
@@ -230,18 +231,22 @@ Each row is a **condensed, two-zone version of the verana.io `ProofOfTrustCard`*
 
 ### [SRCH-RES-2] Other surfaces
 
-Simple single-zone rows from snippet data:
+Rows render from the snippet alone. The DID-bound surfaces (`Ecosystem`, `Corporation`, `ServiceEndpoint`) carry their bound DID as the [TG-FCT-6b] `didCard` group (`did`, `trusted`, `isTrustExpired`, `service`, `operator`), and their rows reuse the two zones of [SRCH-RES-1]:
 
-- **Ecosystem**: eyebrow "ECOSYSTEM"; `id` (mono chip), DID (mono, truncated, copy), archived chip when `archived`.
-- **Corporation**: eyebrow "CORPORATION"; `id`, DID, `policyAddress` (mono, truncated) and `deposit` when present (from the `trust` group, or the flat fields on the earlier graph generation).
-- **CredentialSchema**: eyebrow "CREDENTIAL SCHEMA"; `title` and `description` when present (from the `schema` group or the flat fields), `id` (mono chip), the owning ecosystem id (`ecosystem.id` or `ecosystemId`), archived chip.
-- **ServiceEndpoint**: eyebrow "SERVICE ENDPOINT"; `type` chip (`MCP`, `A2A`, ...), the `serviceEndpoint` URI (mono, truncated), and the owning DID.
+- **Left zone**: the surface eyebrow and chips, with the trust chip from `didCard.trusted` and `didCard.isTrustExpired`. Then the `didCard.service` logo, name, type and description, the surface fields below, and the bound DID (mono, truncated, copy).
+- **Right zone (OPERATED BY)**: `didCard.operator` as in [SRCH-RES-1] (logo, flag, name, `registryId`, `address`).
+- No endpoint or entity badges.
 
-These rows MAY be enriched in later versions (e.g. resolving the Ecosystem DID for its display identity); v1 renders snippets only.
+A snippet without `didCard` (earlier graph generation) renders as a single zone with the surface fields and the DID.
 
-### [SRCH-RES-3] Facets sidebar (SHOULD)
+- **Ecosystem**: eyebrow "ECOSYSTEM", `id` (mono chip), archived chip when `archived`. The `stats` group renders as a mono muted block (participants per role, `issuedCredentials`, `verifiedCredentials`), and the `corporation` group renders as the Corporation trust signals block of [SRCH-RES-1] under the operator.
+- **Corporation**: eyebrow "CORPORATION", `id`, `policyAddress` (mono, truncated) and `deposit` in VNA per [SRCH-ENR-2a] when present (from the `trust` group, or the flat fields on the earlier graph generation).
+- **CredentialSchema**: eyebrow "CREDENTIAL SCHEMA"; `title` and `description` when present (from the `schema` group or the flat fields), `id` (mono chip), the owning ecosystem id (`ecosystem.id` or `ecosystemId`), archived chip. Not DID-bound, so a single zone.
+- **ServiceEndpoint**: eyebrow "SERVICE ENDPOINT", `type` chip (`MCP`, `A2A`, ...), and the `serviceEndpoint` (mono, truncated): the string form as is, the `uri` of the object form, or one line per entry of the array form. The bound DID is `didId`.
 
-When the response's `facets` object is non-empty, the app SHOULD render the aggregations as clickable refinements (value + count) beside or above the list on wide viewports; clicking one sets the corresponding filter and re-queries. On narrow viewports facets fold into the filter panel.
+### [SRCH-RES-3] Facets bar (SHOULD)
+
+When the response's `facets` object is non-empty, the app SHOULD render the aggregations of the fields its filter panel exposes as clickable refinements (value + count) in a bar above the list on wide viewports. Clicking a value toggles it in that field's filter (added to or removed from a multi-select, set or cleared on a single-value field) and re-queries. Selected values are highlighted. On narrow viewports the bar is hidden and facets fold into the filter panel's selects.
 
 ## Accessibility
 

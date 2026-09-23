@@ -108,6 +108,7 @@ export default function ResultList({
           {loadingMore && <span className="eyebrow">Loading more...</span>}
         </div>
       ) : (
+        !loading &&
         hits.length > 0 && (
           <p className="py-6 text-center eyebrow">
             {totalCount} result{totalCount === 1 ? '' : 's'}
