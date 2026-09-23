@@ -52,6 +52,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const generationRef = useRef(0)
   const seenRef = useRef<Set<string>>(new Set())
+  const defaultFacetsRef = useRef<Set<string>>(new Set())
   // Serialize page loads: SCROLL-2 requires at most one page request in flight.
   const pageInFlightRef = useRef(false)
 
@@ -94,16 +95,24 @@ export default function SearchApp({ config }: { config: AppConfig }) {
       setError(null)
 
       const req = buildRequest(q, null)
-      // a multi-select's own filter narrows its facet, so its options come from a request without that filter
+      // a filter narrows its own facet, so default-aggregated multi-selects take theirs from a request without it
       const multiKeys = FILTERS[q.surface]
-        .filter((d) => d.kind === 'multiselect' && d.key in q.filters)
+        .filter(
+          (d) => d.kind === 'multiselect' && d.key in q.filters && defaultFacetsRef.current.has(`${q.surface}|${d.key}`)
+        )
         .map((d) => d.key)
       Promise.all([
         searchGraph(config, req, controller.signal),
         ...multiKeys.map((key) =>
           searchGraph(
             config,
-            { ...req, limit: 1, filters: Object.fromEntries(Object.entries(q.filters).filter(([k]) => k !== key)) },
+            {
+              ...buildRequest(
+                { ...q, filters: Object.fromEntries(Object.entries(q.filters).filter(([k]) => k !== key)) },
+                null
+              ),
+              limit: 1,
+            },
             controller.signal
           )
         ),
@@ -119,6 +128,9 @@ export default function SearchApp({ config }: { config: AppConfig }) {
           })
           seenRef.current = seen
           setHits(deduped)
+          for (const key of Object.keys(res.facets ?? {})) {
+            if (!(key in q.filters)) defaultFacetsRef.current.add(`${q.surface}|${key}`)
+          }
           const facets = { ...res.facets }
           multiKeys.forEach((key, i) => {
             const options = own[i].facets?.[key]
