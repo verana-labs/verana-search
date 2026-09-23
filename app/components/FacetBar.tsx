@@ -34,7 +34,8 @@ export default function FacetBar({
                   aria-pressed={active}
                   onClick={() => onSetFilter(def.key, toggleValue(def, filters[def.key], f.value))}
                 >
-                  {String(f.value)} <span className="opacity-70">{f.count}</span>
+                  {typeof f.value === 'boolean' ? (f.value ? 'Yes' : 'No') : String(f.value)}{' '}
+                  <span className="opacity-70">{f.count}</span>
                 </button>
               )
             })}

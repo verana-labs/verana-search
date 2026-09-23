@@ -66,6 +66,7 @@ function Field({
                   <label key={String(o)} className="flex items-center gap-2">
                     <input
                       type="checkbox"
+                      aria-label={String(o)}
                       checked={selected.some((s) => String(s) === String(o))}
                       onChange={() => onChange(toggleValue(def, value, o))}
                     />
@@ -79,6 +80,7 @@ function Field({
           {!def.options && (
             <input
               type="text"
+              aria-label={def.label}
               className={`input w-full text-sm ${options.length > 0 ? 'mt-2' : ''}`}
               placeholder="Add a value, press Enter"
               onKeyDown={(e) => {
@@ -97,6 +99,7 @@ function Field({
         <label className="block">
           {label}
           <select
+            aria-label={def.label}
             className="input w-full text-sm"
             value={typeof value === 'boolean' ? String(value) : ''}
             onChange={(e) => onChange(e.target.value === '' ? null : e.target.value === 'true')}
@@ -115,6 +118,7 @@ function Field({
           {label}
           <input
             type="text"
+            aria-label={def.label}
             className="input w-full text-sm"
             value={current}
             placeholder={def.placeholder}
@@ -153,6 +157,7 @@ function Field({
               type={temporal ? 'date' : 'number'}
               min={def.scale ? 0 : undefined}
               className="input w-full text-sm"
+              aria-label={`${def.label} min`}
               placeholder="min"
               value={toInput(current.gte)}
               onChange={(e) => update(e.target.value, String(toInput(current.lte)))}
@@ -161,6 +166,7 @@ function Field({
               type={temporal ? 'date' : 'number'}
               min={def.scale ? 0 : undefined}
               className="input w-full text-sm"
+              aria-label={`${def.label} max`}
               placeholder="max"
               value={toInput(current.lte)}
               onChange={(e) => update(String(toInput(current.gte)), e.target.value)}
@@ -179,6 +185,7 @@ function Field({
           {label}
           <input
             type="text"
+            aria-label={def.label}
             className="input w-full text-sm"
             value={current}
             placeholder={def.placeholder}
@@ -201,6 +208,7 @@ function Field({
           {label}
           <input
             type="text"
+            aria-label={def.label}
             list={listId}
             className="input w-full text-sm"
             value={current}
