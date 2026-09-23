@@ -11,10 +11,33 @@ import type { DidCard, FilterValue, SearchHit } from '../../../lib/types'
 
 type CardState = { status: 'loading' } | { status: 'ready'; card: DidCard } | { status: 'failed' }
 
-/** Builds the card from TG-FCT-6a snippet fields when present ([SRCH-ENR-4]). */
+/** Builds the card from the snippet when it carries the card data ([SRCH-ENR-4]). */
 function cardFromSnippet(hit: SearchHit): DidCard | null {
   const s = hit.snippet
-  if (s.serviceName === undefined) return null // pre-TG-FCT-6a graph
+  if (s.service !== undefined) {
+    const ecosystemIds = (s.ecosystems ?? []).map((e) => e.id)
+    return {
+      serviceName: s.service?.name ?? null,
+      serviceType: s.service?.type ?? null,
+      serviceDescription: s.service?.description ?? null,
+      serviceLogoUri: s.service?.logoUri ?? null,
+      operatorName: s.operator?.name ?? null,
+      operatorLogoUri: s.operator?.logoUri ?? null,
+      operatorCountryCode: s.operator?.countryCode ?? null,
+      operatorRegistryId: s.operator?.registryId ?? null,
+      operatorAddress: s.operator?.address ?? null,
+      endpointTypes: (s.endpoints ?? []).map((e) => e.type),
+      isCorporation: s.isCorporation ?? false,
+      isEcosystem: s.isEcosystem ?? ecosystemIds.length > 0,
+      ecosystemIds,
+      corporationId: s.corporation?.id ?? null,
+      corporationDeposit: s.corporation?.deposit ?? null,
+      corporationSlashedEvents: s.corporation?.slashedEvents ?? null,
+      corporationLastSlashedAtTime: s.corporation?.lastSlashedAtTime ?? null,
+      corporationSlashedValue: s.corporation?.slashedValue ?? null,
+    }
+  }
+  if (s.serviceName === undefined) return null // minimum snippet, the resolver fills the card
   return {
     serviceName: s.serviceName ?? null,
     serviceType: s.serviceType ?? null,
@@ -23,10 +46,11 @@ function cardFromSnippet(hit: SearchHit): DidCard | null {
     operatorName: s.operatorName ?? null,
     operatorLogoUri: s.operatorLogoUri ?? null,
     operatorCountryCode: s.operatorCountryCode ?? null,
-    operatorRegistryId: null, // never in the snippet; resolver-only
+    operatorRegistryId: null, // never in the flat snippet; resolver-only
     operatorAddress: null,
     endpointTypes: (s.serviceEndpoints ?? []).map((e) => e.type),
     isCorporation: s.isCorporation ?? false,
+    isEcosystem: (s.ecosystemIds ?? []).length > 0,
     ecosystemIds: s.ecosystemIds ?? [],
     corporationId: s.corporationId ?? null,
     corporationDeposit: s.corporationDeposit ?? null,
@@ -116,10 +140,14 @@ export default function DidRow({
             <span className="eyebrow">Service</span>
             <span className="flex items-center gap-1.5">
               {card?.isCorporation && <span className="chip chip-entity">Corporation</span>}
-              {(card?.ecosystemIds.length ?? 0) > 0 && (
+              {card?.isEcosystem && (
                 <span
                   className="chip chip-entity"
-                  title={`Controls ecosystem${(card?.ecosystemIds.length ?? 0) > 1 ? 's' : ''} ${card?.ecosystemIds.join(', ')}`}
+                  title={
+                    card.ecosystemIds.length > 0
+                      ? `Controls ecosystem${card.ecosystemIds.length > 1 ? 's' : ''} ${card.ecosystemIds.join(', ')}`
+                      : 'Controls one or more ecosystems'
+                  }
                 >
                   Ecosystem
                 </span>

@@ -26,26 +26,64 @@ export type SearchRequest = {
   includeArchived?: boolean
 }
 
-/** Graph service-endpoint projection (TG-FCT-6a `serviceEndpoints[]`). */
+/** One entry of the `endpoints` group (`serviceEndpoints[]` on the earlier graph generation). */
 export type ServiceEndpointRef = {
   id: string
   type: string
   serviceEndpoint: string | object
 }
 
+/** TG-FCT-6b `service` group of a Did hit, `null` when the DID presents no ServiceCredential. */
+export type DidSnippetService = {
+  pattern: 'A' | 'B' | null
+  name: string
+  type: string | null
+  description: string | null
+  logoUri: string | null
+  logoDigestSri: string | null
+}
+
+/** TG-FCT-6b `operator` group, `null` when the trust chain is incomplete. */
+export type DidSnippetOperator = {
+  kind: 'Organization' | 'Persona'
+  name: string | null
+  logoUri: string | null
+  logoDigestSri: string | null
+  countryCode: string | null
+  registryId: string | null
+  address: string | null
+}
+
+/** TG-FCT-6b `corporation` group, the owner Corporation's trust signals. */
+export type DidSnippetCorporation = {
+  id: number | null
+  deposit: string | null
+  slashedEvents: number | null
+  lastSlashedAtTime: string | null
+  slashedValue: string | null
+}
+
 /**
- * Did-surface snippet. Pre-TG-FCT-6a graphs return only the first group;
- * post-PR-62 graphs add the card fields (feature-detected, [SRCH-ENR-4]).
+ * Did-surface snippet. Three graph generations are feature-detected per hit ([SRCH-ENR-4]):
+ * the TG-FCT-6b groups (`service`, `operator`, `corporation`, `endpoints`, `ecosystems`),
+ * the earlier flat card fields, or the bare minimum that needs the resolver.
  */
 export type DidSnippet = {
   did: string
   lastObservedAtTime: string
   isTrustExpired: boolean
   trusted?: boolean
+  isCorporation?: boolean
+  isEcosystem?: boolean
+  service?: DidSnippetService | null
+  operator?: DidSnippetOperator | null
+  corporation?: DidSnippetCorporation
+  endpoints?: ServiceEndpointRef[]
+  ecosystems?: Array<{ id: number; archived: boolean }>
   pattern?: 'A' | 'B' | null
   operatorKind?: 'Organization' | 'Persona' | null
   corporationId?: number
-  // TG-FCT-6a card fields (may be absent on older graphs)
+  // flat card fields of the earlier graph generation
   serviceName?: string | null
   serviceType?: string | null
   serviceDescription?: string | null
@@ -56,7 +94,6 @@ export type DidSnippet = {
   operatorLogoDigestSri?: string | null
   operatorCountryCode?: string | null
   serviceEndpoints?: ServiceEndpointRef[]
-  isCorporation?: boolean
   ecosystemIds?: number[]
   corporationDeposit?: string | null
   corporationSlashedEvents?: number | null
@@ -135,6 +172,7 @@ export type DidCard = {
   endpointTypes: string[]
   /** Entity bindings: the DID is a Corporation / controls Ecosystems. */
   isCorporation: boolean
+  isEcosystem: boolean
   ecosystemIds: number[]
   /** Owner-Corporation trust signals ([SRCH-ENR-2a]). */
   corporationId: number | null

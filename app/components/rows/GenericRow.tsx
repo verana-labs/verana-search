@@ -22,6 +22,14 @@ export default function GenericRow({ hit }: { hit: SearchHit }) {
   const sn = hit.snippet as Record<string, unknown>
   const archived = sn.archived === true
   const did = s(sn.did) ?? s(sn.didId)
+  const schema = (sn.schema ?? {}) as Record<string, unknown>
+  const ecosystem = (sn.ecosystem ?? {}) as Record<string, unknown>
+  const trust = (sn.trust ?? {}) as Record<string, unknown>
+  const title = s(schema.title) ?? s(sn.title)
+  const description = s(schema.description) ?? s(sn.description)
+  const ecosystemId = n(ecosystem.id) ?? n(sn.ecosystemId)
+  const policyAddress = s(trust.policyAddress) ?? s(sn.policyAddress)
+  const deposit = s(trust.deposit) ?? s(sn.deposit)
 
   return (
     <article className="card p-5">
@@ -35,11 +43,9 @@ export default function GenericRow({ hit }: { hit: SearchHit }) {
 
       {hit.type === 'CredentialSchema' && (
         <div className="mt-2">
-          <h3 className="display text-lg">{s(sn.title) ?? `Schema ${String(hit.id)}`}</h3>
-          {s(sn.description) && <p className="mt-1 text-sm text-muted line-clamp-2">{s(sn.description)}</p>}
-          {n(sn.ecosystemId) != null && (
-            <p className="mt-1 font-mono text-xs text-muted">ecosystem {String(sn.ecosystemId)}</p>
-          )}
+          <h3 className="display text-lg">{title ?? `Schema ${String(hit.id)}`}</h3>
+          {description && <p className="mt-1 text-sm text-muted line-clamp-2">{description}</p>}
+          {ecosystemId != null && <p className="mt-1 font-mono text-xs text-muted">ecosystem {String(ecosystemId)}</p>}
         </div>
       )}
 
@@ -54,8 +60,8 @@ export default function GenericRow({ hit }: { hit: SearchHit }) {
 
       {hit.type === 'Corporation' && (
         <div className="mt-2 space-y-1">
-          {s(sn.policyAddress) && <p className="font-mono text-xs text-muted truncate">{s(sn.policyAddress)}</p>}
-          {s(sn.deposit) && <p className="text-sm text-muted">deposit {s(sn.deposit)}</p>}
+          {policyAddress && <p className="font-mono text-xs text-muted truncate">{policyAddress}</p>}
+          {deposit && <p className="text-sm text-muted">deposit {deposit}</p>}
         </div>
       )}
 

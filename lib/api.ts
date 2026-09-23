@@ -198,6 +198,7 @@ export async function buildDidCard(config: AppConfig, did: string, cacheKeySuffi
     operatorAddress: str(o?.address),
     endpointTypes: (own.services ?? []).map((e) => e.type),
     isCorporation: corp?.did != null && corp.did === did,
+    isEcosystem: (own.ecosystems ?? []).length > 0,
     ecosystemIds: (own.ecosystems ?? []).map((e) => e.id),
     corporationId: own.corporationId ?? null,
     corporationDeposit: corp?.deposit ?? null,
