@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, searchGraph } from '../../lib/api'
 import type { AppConfig } from '../../lib/config'
+import { FILTERS } from '../../lib/filters'
 import type { FacetEntry, FilterValue, SearchHit, SearchRequest, SearchSurface } from '../../lib/types'
+import FacetBar from './FacetBar'
 import ResultList from './ResultList'
 import SearchForm from './SearchForm'
 
@@ -50,6 +52,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const generationRef = useRef(0)
   const seenRef = useRef<Set<string>>(new Set())
+  const defaultFacetsRef = useRef<Set<string>>(new Set())
   // Serialize page loads: SCROLL-2 requires at most one page request in flight.
   const pageInFlightRef = useRef(false)
 
@@ -91,8 +94,30 @@ export default function SearchApp({ config }: { config: AppConfig }) {
       setLoading(true)
       setError(null)
 
-      searchGraph(config, buildRequest(q, null), controller.signal)
-        .then((res) => {
+      const req = buildRequest(q, null)
+      // a filter narrows its own facet, so default-aggregated multi-selects take theirs from a request without it
+      const multiKeys = FILTERS[q.surface]
+        .filter(
+          (d) => d.kind === 'multiselect' && d.key in q.filters && defaultFacetsRef.current.has(`${q.surface}|${d.key}`)
+        )
+        .map((d) => d.key)
+      Promise.all([
+        searchGraph(config, req, controller.signal),
+        ...multiKeys.map((key) =>
+          searchGraph(
+            config,
+            {
+              ...buildRequest(
+                { ...q, filters: Object.fromEntries(Object.entries(q.filters).filter(([k]) => k !== key)) },
+                null
+              ),
+              limit: 1,
+            },
+            controller.signal
+          )
+        ),
+      ])
+        .then(([res, ...own]) => {
           if (generation !== generationRef.current) return // superseded
           const seen = new Set<string>()
           const deduped = res.hits.filter((h) => {
@@ -103,7 +128,15 @@ export default function SearchApp({ config }: { config: AppConfig }) {
           })
           seenRef.current = seen
           setHits(deduped)
-          setFacets(res.facets ?? {})
+          for (const key of Object.keys(res.facets ?? {})) {
+            if (!(key in q.filters)) defaultFacetsRef.current.add(`${q.surface}|${key}`)
+          }
+          const facets = { ...res.facets }
+          multiKeys.forEach((key, i) => {
+            const options = own[i].facets?.[key]
+            if (options) facets[key] = options
+          })
+          setFacets(facets)
           setTotalCount(res.totalCount)
           setCursor(res.cursor)
           setLoading(false)
@@ -223,6 +256,7 @@ export default function SearchApp({ config }: { config: AppConfig }) {
         onQueryChange={onQueryChange}
         onSetFilter={setFilter}
       />
+      <FacetBar surface={query.surface} facets={facets} filters={query.filters} onSetFilter={setFilter} />
       <div ref={resultZoneRef} className="mt-6">
         <ResultList
           config={config}
