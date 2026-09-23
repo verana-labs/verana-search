@@ -164,7 +164,7 @@ There is **no pagination UI**. Loading is cursor-driven, per [TG-FCT-7]:
 
 A `Did` hit carries the [TG-FCT-6a] core (`did`, `lastObservedAtTime`, `isTrustExpired`, `trusted`, `isCorporation`, `isEcosystem`) and, because the app sends no `snippet` selector, the [TG-FCT-6b] default groups: `service` (with `service.pattern`), `operator` (with `operator.kind`), `corporation` (with `corporation.id`) and `endpoints`. That renders a `Did` row from the search response alone ([SRCH-ENR-4]), so the resolver and corporation calls of [SRCH-ENR-2] and [SRCH-ENR-2a] are a fallback. They run only for a hit of the earlier graph generation whose snippet is the flat minimum (`did`, `lastObservedAtTime`, `isTrustExpired`, `trusted`, `pattern`, `operatorKind`, `corporationId`) with **no ECS credential data**.
 
-[SRCH-ENR-2] For each `Did` hit, the app MUST call the resolver:
+[SRCH-ENR-2] For a `Did` hit that takes the fallback of [SRCH-ENR-1] (a flat minimum snippet without the card data of [SRCH-ENR-4]), the app MUST call the resolver:
 
 ```json
 POST {RESOLVER_BASE_URL}/v4/verifiable-trust/resolve
