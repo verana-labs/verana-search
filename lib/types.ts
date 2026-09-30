@@ -64,6 +64,25 @@ export type DidSnippetCorporation = {
 }
 
 /**
+ * TG-FCT-6b shared `didCard` group: the bound DID of a non-`Did` DID-bound
+ * surface rendered as a result card. Never `null` when projected.
+ */
+export type DidCardGroup = {
+  did: string
+  trusted: boolean
+  isTrustExpired: boolean
+  service: DidSnippetService | null
+  operator: DidSnippetOperator | null
+}
+
+/** TG-FCT-6b `stats` group of an Ecosystem hit. */
+export type EcosystemStatsGroup = {
+  participants: Record<string, number>
+  issuedCredentials: number
+  verifiedCredentials: number
+}
+
+/**
  * Did-surface snippet. Three graph generations are feature-detected per hit ([SRCH-ENR-4]):
  * the TG-FCT-6b groups (`service`, `operator`, `corporation`, `endpoints`, `ecosystems`),
  * the earlier flat card fields, or the bare minimum that needs the resolver.

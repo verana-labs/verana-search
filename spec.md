@@ -162,7 +162,7 @@ There is **no pagination UI**. Loading is cursor-driven, per [TG-FCT-7]:
 
 ### [SRCH-ENR-1] Why enrichment
 
-The devnet graph currently returns the pre-[TG-FCT-6a] minimum snippet for `Did` hits (`did`, `lastObservedAtTime`, `isTrustExpired`, `trusted`, `pattern`, `operatorKind`, `corporationId`) with **no ECS credential data**, so a `Did` row cannot be rendered from the search response alone.
+The graph's `Did` snippet has shipped in three generations: the current [TG-FCT-6b] groups (the devnet default projection: `service`, `operator`, `corporation`, `endpoints`), the earlier flat card fields, and the pre-[TG-FCT-6a] minimum (`did`, `lastObservedAtTime`, `isTrustExpired`, `trusted`, `pattern`, `operatorKind`, `corporationId`) with **no ECS credential data**. Only against that minimum snippet can a `Did` row not be rendered from the search response alone; the resolver enrichment below exists for that generation and remains as the fallback.
 
 [SRCH-ENR-2] For each `Did` hit, the app MUST call the resolver:
 
@@ -232,12 +232,14 @@ Each row is a **condensed, two-zone version of the verana.io `ProofOfTrustCard`*
 
 Simple single-zone rows from snippet data:
 
-- **Ecosystem**: eyebrow "ECOSYSTEM"; `id` (mono chip), DID (mono, truncated, copy), archived chip when `archived`.
-- **Corporation**: eyebrow "CORPORATION"; `id`, DID, `policyAddress` (mono, truncated) and `deposit` when present (from the `trust` group, or the flat fields on the earlier graph generation).
+- **Ecosystem**: eyebrow "ECOSYSTEM"; `id` (mono chip), DID (mono, truncated, copy), archived chip when `archived`; the `stats` group when present (participants by role, issued / verified credential counts, mono muted), and the controlling Corporation's trust signals from the `corporation` group (`Corporation #id`, deposit in VNA, slash count — red with last-slashed details when non-zero).
+- **Corporation**: eyebrow "CORPORATION"; `id`, DID, `policyAddress` (mono, truncated), deposit in VNA and slash count (from the `trust` group, or the flat fields on the earlier graph generation; slash count red with last-slashed details when non-zero).
 - **CredentialSchema**: eyebrow "CREDENTIAL SCHEMA"; `title` and `description` when present (from the `schema` group or the flat fields), `id` (mono chip), the owning ecosystem id (`ecosystem.id` or `ecosystemId`), archived chip.
 - **ServiceEndpoint**: eyebrow "SERVICE ENDPOINT"; `type` chip (`MCP`, `A2A`, ...), the `serviceEndpoint` URI (mono, truncated), and the owning DID.
 
-These rows MAY be enriched in later versions (e.g. resolving the Ecosystem DID for its display identity); v1 renders snippets only.
+On the DID-bound surfaces (`Ecosystem`, `Corporation`, `ServiceEndpoint`), when the snippet carries the [TG-FCT-6b] `didCard` group the row additionally renders the bound DID's card identity — service logo, service name, and "Operated by" line with country flag (skipped when both `service` and `operator` are `null`) — plus a Verified / Untrusted chip from the card's `trusted` / `isTrustExpired` flags (describing the bound DID; it does not gate the hit).
+
+These rows render snippets only; no enrichment call is made.
 
 ### [SRCH-RES-3] Facets sidebar (SHOULD)
 
