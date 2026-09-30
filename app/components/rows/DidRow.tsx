@@ -8,6 +8,7 @@ import { badgeList, MAX_BADGES } from '../../../lib/badges'
 import type { AppConfig } from '../../../lib/config'
 import { countryFlag, truncateDid } from '../../../lib/flag'
 import type { DidCard, FilterValue, SearchHit } from '../../../lib/types'
+import Logo from './Logo'
 
 type CardState = { status: 'loading' } | { status: 'ready'; card: DidCard } | { status: 'failed' }
 
@@ -58,29 +59,6 @@ function cardFromSnippet(hit: SearchHit): DidCard | null {
     corporationLastSlashedAtTime: s.corporationLastSlashedAtTime ?? null,
     corporationSlashedValue: s.corporationSlashedValue ?? null,
   }
-}
-
-function Logo({ uri, alt, size, fallback }: { uri: string | null; alt: string; size: string; fallback: string }) {
-  const [broken, setBroken] = useState(false)
-  if (!uri || broken) {
-    return (
-      <span
-        aria-hidden
-        className={`${size} shrink-0 rounded-lg bg-surface-2 border border-rule flex items-center justify-center display text-muted`}
-      >
-        {fallback}
-      </span>
-    )
-  }
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={uri}
-      alt={alt}
-      className={`${size} shrink-0 rounded-lg object-cover bg-surface-2`}
-      onError={() => setBroken(true)}
-    />
-  )
 }
 
 export default function DidRow({
