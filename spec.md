@@ -246,6 +246,7 @@ A `Did` row whose endpoint types include a DIDComm entry (`DIDCommMessaging` or 
   ```
   A VS Agent accepts a DID Exchange request whose invitation id is its public DID, so the invitation needs no call to the service and works for every user.
 - The QR code MUST be generated in the browser: the DIDs a user looks at MUST NOT be sent to a third-party QR service.
+- The QR MUST be drawn with a whole number of pixels per module and shown at that size without smoothing (`image-rendering: pixelated`), up to about 300 CSS px so it fits a phone-width card: a scaled QR blurs its modules and cameras fail to read it.
 - The panel shows the QR on a white background in both themes (so phone cameras read it), a one-line instruction to scan it with a DIDComm wallet, and the invitation link itself (on a phone, opening the link hands the invitation to the wallet).
 - The button carries an `aria-label` and `aria-expanded`.
 

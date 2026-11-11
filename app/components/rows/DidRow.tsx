@@ -85,20 +85,35 @@ function Logo({ uri, alt, size, fallback }: { uri: string | null; alt: string; s
   )
 }
 
-/** DIDComm invitation QR of a service ([SRCH-RES-4]), rendered in the browser. */
+/** Quiet zone, in modules (the white box padding adds to it). */
+const QR_MARGIN = 2
+/** Largest QR side, in CSS px, that still fits a phone-width card. */
+const QR_MAX_PX = 300
+
+/**
+ * DIDComm invitation QR of a service ([SRCH-RES-4]), rendered in the browser.
+ * Drawn with a whole number of pixels per module and shown at that exact size,
+ * without smoothing: a scaled QR blurs its modules and cameras fail to read it.
+ */
 function InvitationPanel({ url, serviceName }: { url: string; serviceName: string }) {
-  const [qr, setQr] = useState<string | null>(null)
+  const [qr, setQr] = useState<{ src: string; size: number } | null>(null)
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    QRCode.toDataURL(url, { errorCorrectionLevel: 'M', margin: 1, width: 440 })
-      .then((dataUrl) => {
-        if (!cancelled) setQr(dataUrl)
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true)
-      })
+    try {
+      const modules = QRCode.create(url, { errorCorrectionLevel: 'M' }).modules.size + 2 * QR_MARGIN
+      const scale = Math.max(2, Math.floor(QR_MAX_PX / modules))
+      QRCode.toDataURL(url, { errorCorrectionLevel: 'M', margin: QR_MARGIN, scale })
+        .then((src) => {
+          if (!cancelled) setQr({ src, size: modules * scale })
+        })
+        .catch(() => {
+          if (!cancelled) setFailed(true)
+        })
+    } catch {
+      setFailed(true)
+    }
     return () => {
       cancelled = true
     }
@@ -106,10 +121,16 @@ function InvitationPanel({ url, serviceName }: { url: string; serviceName: strin
 
   return (
     <div className="mt-4 border-t border-rule pt-4 flex flex-col items-center gap-3">
-      <div className="bg-white rounded-xl p-3 w-[244px] h-[244px] flex items-center justify-center">
+      <div className="bg-white rounded-xl p-3 min-w-[244px] min-h-[244px] flex items-center justify-center">
         {qr ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={qr} alt={`QR code to connect to ${serviceName}`} width={220} height={220} />
+          <img
+            src={qr.src}
+            alt={`QR code to connect to ${serviceName}`}
+            width={qr.size}
+            height={qr.size}
+            style={{ imageRendering: 'pixelated' }}
+          />
         ) : (
           <span className="text-xs text-[#6b7280] text-center px-4">
             {failed ? 'The QR code could not be generated.' : 'Generating...'}
