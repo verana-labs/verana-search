@@ -32,5 +32,6 @@ helm install verana-search ./charts \
 | `env.GRAPH_BASE_URL` | devnet graph | Verana Graph base URL |
 | `env.RESOLVER_BASE_URL` | devnet indexer | Verana Indexer base URL |
 | `env.NETWORK_LABEL` | `Devnet` | Network name shown in the header |
+| `env.INVITATION_BASE_URL` | `https://hologram.zone/invitation` | Landing page of the DIDComm invitation QR |
 | `resources` | 50m/128Mi requests, 250m/256Mi limits | Minimal defaults |
 | `ingress.enabled` | `true` | nginx + cert-manager (letsencrypt-prod) |

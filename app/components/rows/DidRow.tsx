@@ -1,12 +1,14 @@
 'use client'
 
-import { faCheck, faCopy } from '@fortawesome/free-solid-svg-icons'
+import { faCheck, faCopy, faQrcode } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import QRCode from 'qrcode'
 import { useEffect, useState } from 'react'
 import { buildDidCard, formatVna } from '../../../lib/api'
 import { badgeList, MAX_BADGES } from '../../../lib/badges'
 import type { AppConfig } from '../../../lib/config'
 import { countryFlag, truncateDid } from '../../../lib/flag'
+import { buildInvitationUrl, hasDidcommEndpoint } from '../../../lib/invitation'
 import type { DidCard, FilterValue, SearchHit } from '../../../lib/types'
 
 type CardState = { status: 'loading' } | { status: 'ready'; card: DidCard } | { status: 'failed' }
@@ -83,6 +85,47 @@ function Logo({ uri, alt, size, fallback }: { uri: string | null; alt: string; s
   )
 }
 
+/** DIDComm invitation QR of a service ([SRCH-RES-4]), rendered in the browser. */
+function InvitationPanel({ url, serviceName }: { url: string; serviceName: string }) {
+  const [qr, setQr] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    QRCode.toDataURL(url, { errorCorrectionLevel: 'M', margin: 1, width: 440 })
+      .then((dataUrl) => {
+        if (!cancelled) setQr(dataUrl)
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [url])
+
+  return (
+    <div className="mt-4 border-t border-rule pt-4 flex flex-col items-center gap-3">
+      <div className="bg-white rounded-xl p-3 w-[244px] h-[244px] flex items-center justify-center">
+        {qr ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={qr} alt={`QR code to connect to ${serviceName}`} width={220} height={220} />
+        ) : (
+          <span className="text-xs text-[#6b7280] text-center px-4">
+            {failed ? 'The QR code could not be generated.' : 'Generating...'}
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-muted text-center max-w-xs">
+        Scan with a DIDComm wallet, such as Hologram, to connect to {serviceName}.
+      </p>
+      <a className="text-sm text-accent hover:underline" href={url} target="_blank" rel="noreferrer noopener">
+        Open the invitation link
+      </a>
+    </div>
+  )
+}
+
 export default function DidRow({
   config,
   hit,
@@ -99,6 +142,7 @@ export default function DidRow({
   )
   const [copied, setCopied] = useState(false)
   const [showRaw, setShowRaw] = useState(false)
+  const [showQr, setShowQr] = useState(false)
 
   // [SRCH-ENR-2]: resolver enrichment when the snippet has no card fields.
   useEffect(() => {
@@ -123,6 +167,11 @@ export default function DidRow({
   const shownBadges = badges.slice(0, MAX_BADGES)
   const overflow = badges.length - shownBadges.length
   const flag = card?.operatorCountryCode ? countryFlag(card.operatorCountryCode) : null
+  // [SRCH-RES-4]: only a DID with a DIDComm endpoint can be connected to.
+  const invitationUrl =
+    card && hasDidcommEndpoint(card.endpointTypes)
+      ? buildInvitationUrl(config.invitationBaseUrl, did, card.serviceName, card.serviceLogoUri)
+      : null
 
   function copyDid() {
     navigator.clipboard?.writeText(did).then(() => {
@@ -226,6 +275,18 @@ export default function DidRow({
                 className={`h-3.5 w-3.5 ${copied ? 'text-success-ink' : ''}`}
               />
             </button>
+            {invitationUrl && (
+              <button
+                type="button"
+                aria-label={showQr ? 'Hide the DIDComm invitation QR code' : 'Show a DIDComm invitation QR code'}
+                aria-expanded={showQr}
+                title="Connect with a DIDComm wallet"
+                className={`hover:text-ink ${showQr ? 'text-ink' : 'text-muted'}`}
+                onClick={() => setShowQr((v) => !v)}
+              >
+                <FontAwesomeIcon icon={faQrcode} className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -283,6 +344,10 @@ export default function DidRow({
           )}
         </div>
       </div>
+
+      {showQr && invitationUrl && (
+        <InvitationPanel url={invitationUrl} serviceName={card?.serviceName ?? 'this service'} />
+      )}
 
       {/* v1 detail: raw resolver link/drawer ([SRCH-RES-1]) */}
       {showRaw && (
