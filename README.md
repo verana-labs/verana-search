@@ -18,7 +18,6 @@ Runtime environment variables (never baked at build time; the same image serves 
 | `GRAPH_BASE_URL` | `https://graph.devnet.verana.network` | Verana Graph base URL |
 | `RESOLVER_BASE_URL` | `https://idx.devnet.verana.network` | Verana Indexer base URL |
 | `NETWORK_LABEL` | `Devnet` | Network name shown in the header |
-| `INVITATION_BASE_URL` | `https://hologram.zone/invitation` | Landing page of the DIDComm invitation QR shown for services with a DIDComm endpoint |
 
 Health probe: `GET /api/health` (200 when up and configuration is valid).
 

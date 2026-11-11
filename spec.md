@@ -28,7 +28,6 @@ Normative requirements are prefixed `[SRCH-]`.
 | `GRAPH_BASE_URL` | REQUIRED | `https://graph.devnet.verana.network` | Base URL of the Verana Graph. The app calls `POST {GRAPH_BASE_URL}/v4/graph/search`. |
 | `RESOLVER_BASE_URL` | REQUIRED | `https://idx.devnet.verana.network` | Base URL of the Verana Indexer. The app calls `POST {RESOLVER_BASE_URL}/v4/verifiable-trust/resolve`. |
 | `NETWORK_LABEL` | OPTIONAL | `Devnet` | Human-readable network name shown in the header. |
-| `INVITATION_BASE_URL` | OPTIONAL | `https://hologram.zone/invitation` | Landing page of the DIDComm invitation QR of [SRCH-RES-4]: the QR encodes `{INVITATION_BASE_URL}?oob=<invitation>`. |
 
 [SRCH-CFG-2] **Container.** The app MUST be delivered as a versioned container image (Docker Hub, same packaging pattern as the other Verana frontends), and the endpoints of [SRCH-CFG-1] MUST be **runtime configuration of the container**, not build-time constants: the same image serves devnet, testnet, and mainnet by changing only its environment. For a Next.js build this means the values MUST NOT be baked in as `NEXT_PUBLIC_*` at build time; they are read server-side at startup (standalone output) and handed to the client (server component prop, or a tiny `/config` route), so that `docker run -e GRAPH_BASE_URL=... -e RESOLVER_BASE_URL=...` is sufficient. The container MUST log the resolved configuration at startup and MUST fail fast with a descriptive error when a REQUIRED variable is missing or malformed.
 
@@ -214,7 +213,7 @@ Each row is a **condensed, two-zone version of the verana.io `ProofOfTrustCard`*
 +------------------------------------------------------------------------------+
 ```
 
-- **Left zone (SERVICE)**: `eyebrow` label "SERVICE"; square service logo (`logoUri`, 40-48 px, rounded, `bg-surface-2` fallback with initial letter); service `name` in Space Grotesk semibold; `type` as a mono muted line; `description` clamped to 2 lines; the DID in IBM Plex Mono, middle-truncated, with a copy-to-clipboard icon button and, when the DID has a DIDComm endpoint, a QR icon button per [SRCH-RES-4].
+- **Left zone (SERVICE)**: `eyebrow` label "SERVICE"; square service logo (`logoUri`, 40-48 px, rounded, `bg-surface-2` fallback with initial letter); service `name` in Space Grotesk semibold; `type` as a mono muted line; `description` clamped to 2 lines; the DID in IBM Plex Mono, middle-truncated, with a copy-to-clipboard icon button and, when the DID has a DIDComm endpoint, a QR icon button per [SRCH-RES-4] (connection QR of the DID).
 - **Right zone (OPERATED BY)**: `eyebrow` label "OPERATED BY"; operator logo/avatar (smaller than the service logo, per the ProofOfTrustCard convention); emoji country flag + operator `name`; `registryId` in mono muted (organizations); `address` muted, single line truncated (organizations). Personas show name + flag only.
 - **Corporation trust signals** (below the operator identity, per [SRCH-ENR-2a]): a mono muted block showing the owner `corporationId` (`CORPORATION #8`), `corporationDeposit` in VNA, and `corporationSlashedEvents`; when `corporationSlashedEvents > 0` the slash count renders in red and the block adds `corporationLastSlashedAtTime` (date) and `corporationSlashedValue` in VNA.
 - **Endpoint type badges** (SERVICE zone, between the description and the DID line): one mono `chip` per **deduplicated** service endpoint type of the DID Document — from `snippet.endpoints[].type` or `snippet.serviceEndpoints[].type` when present (per [SRCH-ENR-4]), else from `services[].type` of the enrichment resolve of [SRCH-ENR-2]. Display rules:
@@ -229,25 +228,15 @@ Each row is a **condensed, two-zone version of the verana.io `ProofOfTrustCard`*
 - The row is clickable. v1: opens the DID's resolver JSON in a new tab (`{RESOLVER_BASE_URL}/v4/verifiable-trust/resolve` result rendered raw or via a minimal drawer). A dedicated detail page is out of scope for v1.
 - `highlights[]` fragments, when present, MAY be rendered under the description in muted small text with `<em>` matches styled in accent color, after sanitization: treat fragments as text and re-apply only the `<em>` markers; never inject response HTML.
 
-### [SRCH-RES-4] DIDComm invitation QR
+### [SRCH-RES-4] DIDComm connection QR
 
 A `Did` row whose endpoint types include a DIDComm entry (`DIDCommMessaging` or `did-communication`, the `DIDCOMM` badge of [SRCH-RES-1]) MUST show a QR icon button right after the copy button of the DID. Rows without a DIDComm endpoint MUST NOT show it.
 
-- Clicking the button toggles a panel under the row with a QR code of `{INVITATION_BASE_URL}?oob=<base64url>`, where `<base64url>` is the base64url encoding (RFC 4648 section 5, no padding) of this static out-of-band invitation to the DID:
-  ```json
-  {
-    "@type": "https://didcomm.org/out-of-band/1.1/invitation",
-    "@id": "<DID>",
-    "label": "<service name, or the DID>",
-    "imageUrl": "<service logo, when present>",
-    "handshake_protocols": ["https://didcomm.org/didexchange/1.1"],
-    "services": ["<DID>"]
-  }
-  ```
-  A VS Agent accepts a DID Exchange request whose invitation id is its public DID, so the invitation needs no call to the service and works for every user.
+- Clicking the button toggles a panel under the row with a QR code of the **bare DID** (the DID string, nothing else), and a one-line instruction to scan it from the scanner of a DIDComm wallet.
+- The bare DID lets the wallet choose the DIDComm version: it resolves the DID Document and connects with DIDComm v2 when both sides support it (no handshake), or with v1 (DID Exchange) otherwise. An out-of-band invitation would fix the version (v1 with `handshake_protocols`, v2 with `out-of-band/2.0`).
+- The QR is meant for the scanner inside the wallet: a phone's camera app does not open a wallet from a bare DID.
 - The QR code MUST be generated in the browser: the DIDs a user looks at MUST NOT be sent to a third-party QR service.
-- The QR MUST be drawn with a whole number of pixels per module and shown at that size without smoothing (`image-rendering: pixelated`), up to about 300 CSS px so it fits a phone-width card: a scaled QR blurs its modules and cameras fail to read it.
-- The panel shows the QR on a white background in both themes (so phone cameras read it), a one-line instruction to scan it with a DIDComm wallet, and the invitation link itself (on a phone, opening the link hands the invitation to the wallet).
+- The QR MUST be drawn with a whole number of pixels per module and shown at that size without smoothing (`image-rendering: pixelated`), on a white background in both themes: a scaled QR blurs its modules and cameras fail to read it.
 - The button carries an `aria-label` and `aria-expanded`.
 
 ### [SRCH-RES-2] Other surfaces

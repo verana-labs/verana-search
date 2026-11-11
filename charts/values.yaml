@@ -28,7 +28,6 @@ env:
   GRAPH_BASE_URL: "https://graph.devnet.verana.network"
   RESOLVER_BASE_URL: "https://idx.devnet.verana.network"
   NETWORK_LABEL: "Devnet"
-  INVITATION_BASE_URL: "https://hologram.zone/invitation"
 
 # Additional env variables if needed (list of {name, value})
 extraEnv: []

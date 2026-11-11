@@ -10,15 +10,12 @@ export type AppConfig = {
   graphBaseUrl: string
   resolverBaseUrl: string
   networkLabel: string
-  /** Landing page of the DIDComm invitation QR ([SRCH-RES-4]): `{invitationBaseUrl}?oob=...`. */
-  invitationBaseUrl: string
 }
 
 const DEFAULTS = {
   GRAPH_BASE_URL: 'https://graph.devnet.verana.network',
   RESOLVER_BASE_URL: 'https://idx.devnet.verana.network',
   NETWORK_LABEL: 'Devnet',
-  INVITATION_BASE_URL: 'https://hologram.zone/invitation',
 }
 
 function requireUrl(name: string, value: string): string {
@@ -41,9 +38,5 @@ export function getServerConfig(): AppConfig {
     graphBaseUrl: requireUrl('GRAPH_BASE_URL', process.env.GRAPH_BASE_URL ?? DEFAULTS.GRAPH_BASE_URL),
     resolverBaseUrl: requireUrl('RESOLVER_BASE_URL', process.env.RESOLVER_BASE_URL ?? DEFAULTS.RESOLVER_BASE_URL),
     networkLabel: process.env.NETWORK_LABEL ?? DEFAULTS.NETWORK_LABEL,
-    invitationBaseUrl: requireUrl(
-      'INVITATION_BASE_URL',
-      process.env.INVITATION_BASE_URL ?? DEFAULTS.INVITATION_BASE_URL
-    ),
   }
 }

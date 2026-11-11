@@ -8,7 +8,7 @@ import { buildDidCard, formatVna } from '../../../lib/api'
 import { badgeList, MAX_BADGES } from '../../../lib/badges'
 import type { AppConfig } from '../../../lib/config'
 import { countryFlag, truncateDid } from '../../../lib/flag'
-import { buildInvitationUrl, hasDidcommEndpoint } from '../../../lib/invitation'
+import { hasDidcommEndpoint } from '../../../lib/invitation'
 import type { DidCard, FilterValue, SearchHit } from '../../../lib/types'
 
 type CardState = { status: 'loading' } | { status: 'ready'; card: DidCard } | { status: 'failed' }
@@ -87,24 +87,25 @@ function Logo({ uri, alt, size, fallback }: { uri: string | null; alt: string; s
 
 /** Quiet zone, in modules (the white box padding adds to it). */
 const QR_MARGIN = 2
-/** Largest QR side, in CSS px, that still fits a phone-width card. */
-const QR_MAX_PX = 300
+/** Largest QR side, in CSS px. */
+const QR_MAX_PX = 240
 
 /**
- * DIDComm invitation QR of a service ([SRCH-RES-4]), rendered in the browser.
- * Drawn with a whole number of pixels per module and shown at that exact size,
- * without smoothing: a scaled QR blurs its modules and cameras fail to read it.
+ * DIDComm connection QR of a service ([SRCH-RES-4]): the bare DID, rendered in
+ * the browser. Drawn with a whole number of pixels per module and shown at that
+ * exact size, without smoothing: a scaled QR blurs its modules and cameras fail
+ * to read it.
  */
-function InvitationPanel({ url, serviceName }: { url: string; serviceName: string }) {
+function ConnectQrPanel({ value, serviceName }: { value: string; serviceName: string }) {
   const [qr, setQr] = useState<{ src: string; size: number } | null>(null)
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     try {
-      const modules = QRCode.create(url, { errorCorrectionLevel: 'M' }).modules.size + 2 * QR_MARGIN
+      const modules = QRCode.create(value, { errorCorrectionLevel: 'M' }).modules.size + 2 * QR_MARGIN
       const scale = Math.max(2, Math.floor(QR_MAX_PX / modules))
-      QRCode.toDataURL(url, { errorCorrectionLevel: 'M', margin: QR_MARGIN, scale })
+      QRCode.toDataURL(value, { errorCorrectionLevel: 'M', margin: QR_MARGIN, scale })
         .then((src) => {
           if (!cancelled) setQr({ src, size: modules * scale })
         })
@@ -117,7 +118,7 @@ function InvitationPanel({ url, serviceName }: { url: string; serviceName: strin
     return () => {
       cancelled = true
     }
-  }, [url])
+  }, [value])
 
   return (
     <div className="mt-4 border-t border-rule pt-4 flex flex-col items-center gap-3">
@@ -138,11 +139,8 @@ function InvitationPanel({ url, serviceName }: { url: string; serviceName: strin
         )}
       </div>
       <p className="text-xs text-muted text-center max-w-xs">
-        Scan with a DIDComm wallet, such as Hologram, to connect to {serviceName}.
+        Scan from the scanner of a DIDComm wallet, such as Hologram, to connect to {serviceName}.
       </p>
-      <a className="text-sm text-accent hover:underline" href={url} target="_blank" rel="noreferrer noopener">
-        Open the invitation link
-      </a>
     </div>
   )
 }
@@ -189,10 +187,7 @@ export default function DidRow({
   const overflow = badges.length - shownBadges.length
   const flag = card?.operatorCountryCode ? countryFlag(card.operatorCountryCode) : null
   // [SRCH-RES-4]: only a DID with a DIDComm endpoint can be connected to.
-  const invitationUrl =
-    card && hasDidcommEndpoint(card.endpointTypes)
-      ? buildInvitationUrl(config.invitationBaseUrl, did, card.serviceName, card.serviceLogoUri)
-      : null
+  const canConnect = card !== null && hasDidcommEndpoint(card.endpointTypes)
 
   function copyDid() {
     navigator.clipboard?.writeText(did).then(() => {
@@ -296,10 +291,10 @@ export default function DidRow({
                 className={`h-3.5 w-3.5 ${copied ? 'text-success-ink' : ''}`}
               />
             </button>
-            {invitationUrl && (
+            {canConnect && (
               <button
                 type="button"
-                aria-label={showQr ? 'Hide the DIDComm invitation QR code' : 'Show a DIDComm invitation QR code'}
+                aria-label={showQr ? 'Hide the DIDComm connection QR code' : 'Show a DIDComm connection QR code'}
                 aria-expanded={showQr}
                 title="Connect with a DIDComm wallet"
                 className={`hover:text-ink ${showQr ? 'text-ink' : 'text-muted'}`}
@@ -366,9 +361,7 @@ export default function DidRow({
         </div>
       </div>
 
-      {showQr && invitationUrl && (
-        <InvitationPanel url={invitationUrl} serviceName={card?.serviceName ?? 'this service'} />
-      )}
+      {showQr && canConnect && <ConnectQrPanel value={did} serviceName={card?.serviceName ?? 'this service'} />}
 
       {/* v1 detail: raw resolver link/drawer ([SRCH-RES-1]) */}
       {showRaw && (
