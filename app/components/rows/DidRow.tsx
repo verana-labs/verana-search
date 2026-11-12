@@ -8,7 +8,6 @@ import { buildDidCard, formatVna } from '../../../lib/api'
 import { badgeList, MAX_BADGES } from '../../../lib/badges'
 import type { AppConfig } from '../../../lib/config'
 import { countryFlag, truncateDid } from '../../../lib/flag'
-import { hasDidcommEndpoint } from '../../../lib/invitation'
 import type { DidCard, FilterValue, SearchHit } from '../../../lib/types'
 
 type CardState = { status: 'loading' } | { status: 'ready'; card: DidCard } | { status: 'failed' }
@@ -91,12 +90,12 @@ const QR_MARGIN = 2
 const QR_MAX_PX = 240
 
 /**
- * DIDComm connection QR of a service ([SRCH-RES-4]): the bare DID, rendered in
- * the browser. Drawn with a whole number of pixels per module and shown at that
+ * QR code of a DID ([SRCH-RES-4]): the bare DID, rendered in the browser. The
+ * app that scans it decides what to do with the DID. Drawn with a whole number of pixels per module and shown at that
  * exact size, without smoothing: a scaled QR blurs its modules and cameras fail
  * to read it.
  */
-function ConnectQrPanel({ value, serviceName }: { value: string; serviceName: string }) {
+function DidQrPanel({ value, serviceName }: { value: string; serviceName: string }) {
   const [qr, setQr] = useState<{ src: string; size: number } | null>(null)
   const [failed, setFailed] = useState(false)
 
@@ -127,7 +126,7 @@ function ConnectQrPanel({ value, serviceName }: { value: string; serviceName: st
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={qr.src}
-            alt={`QR code to connect to ${serviceName}`}
+            alt={`QR code of the DID of ${serviceName}`}
             width={qr.size}
             height={qr.size}
             style={{ imageRendering: 'pixelated' }}
@@ -139,7 +138,7 @@ function ConnectQrPanel({ value, serviceName }: { value: string; serviceName: st
         )}
       </div>
       <p className="text-xs text-muted text-center max-w-xs">
-        Scan from the scanner of a DIDComm wallet, such as Hologram, to connect to {serviceName}.
+        Scan the DID of {serviceName} from the scanner of an app, such as Hologram.
       </p>
     </div>
   )
@@ -186,8 +185,6 @@ export default function DidRow({
   const shownBadges = badges.slice(0, MAX_BADGES)
   const overflow = badges.length - shownBadges.length
   const flag = card?.operatorCountryCode ? countryFlag(card.operatorCountryCode) : null
-  // [SRCH-RES-4]: only a DID with a DIDComm endpoint can be connected to.
-  const canConnect = card !== null && hasDidcommEndpoint(card.endpointTypes)
 
   function copyDid() {
     navigator.clipboard?.writeText(did).then(() => {
@@ -291,18 +288,16 @@ export default function DidRow({
                 className={`h-3.5 w-3.5 ${copied ? 'text-success-ink' : ''}`}
               />
             </button>
-            {canConnect && (
-              <button
-                type="button"
-                aria-label={showQr ? 'Hide the DIDComm connection QR code' : 'Show a DIDComm connection QR code'}
-                aria-expanded={showQr}
-                title="Connect with a DIDComm wallet"
-                className={`hover:text-ink ${showQr ? 'text-ink' : 'text-muted'}`}
-                onClick={() => setShowQr((v) => !v)}
-              >
-                <FontAwesomeIcon icon={faQrcode} className="h-3.5 w-3.5" />
-              </button>
-            )}
+            <button
+              type="button"
+              aria-label="DID QR code"
+              aria-expanded={showQr}
+              title="Show the DID as a QR code"
+              className={`hover:text-ink ${showQr ? 'text-ink' : 'text-muted'}`}
+              onClick={() => setShowQr((v) => !v)}
+            >
+              <FontAwesomeIcon icon={faQrcode} className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
 
@@ -361,7 +356,7 @@ export default function DidRow({
         </div>
       </div>
 
-      {showQr && canConnect && <ConnectQrPanel value={did} serviceName={card?.serviceName ?? 'this service'} />}
+      {showQr && <DidQrPanel value={did} serviceName={card?.serviceName ?? 'this service'} />}
 
       {/* v1 detail: raw resolver link/drawer ([SRCH-RES-1]) */}
       {showRaw && (
