@@ -1,7 +1,8 @@
 'use client'
 
-import { faCheck, faCopy } from '@fortawesome/free-solid-svg-icons'
+import { faCheck, faCopy, faQrcode } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import QRCode from 'qrcode'
 import { useEffect, useState } from 'react'
 import { buildDidCard, formatVna } from '../../../lib/api'
 import { badgeList, MAX_BADGES } from '../../../lib/badges'
@@ -83,6 +84,66 @@ function Logo({ uri, alt, size, fallback }: { uri: string | null; alt: string; s
   )
 }
 
+/** Quiet zone, in modules (the white box padding adds to it). */
+const QR_MARGIN = 2
+/** Largest QR side, in CSS px. */
+const QR_MAX_PX = 240
+
+/**
+ * QR code of a DID ([SRCH-RES-4]): the bare DID, rendered in the browser. The
+ * app that scans it decides what to do with the DID. Drawn with a whole number of pixels per module and shown at that
+ * exact size, without smoothing: a scaled QR blurs its modules and cameras fail
+ * to read it.
+ */
+function DidQrPanel({ value, serviceName }: { value: string; serviceName: string }) {
+  const [qr, setQr] = useState<{ src: string; size: number } | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    try {
+      const modules = QRCode.create(value, { errorCorrectionLevel: 'M' }).modules.size + 2 * QR_MARGIN
+      const scale = Math.max(2, Math.floor(QR_MAX_PX / modules))
+      QRCode.toDataURL(value, { errorCorrectionLevel: 'M', margin: QR_MARGIN, scale })
+        .then((src) => {
+          if (!cancelled) setQr({ src, size: modules * scale })
+        })
+        .catch(() => {
+          if (!cancelled) setFailed(true)
+        })
+    } catch {
+      setFailed(true)
+    }
+    return () => {
+      cancelled = true
+    }
+  }, [value])
+
+  return (
+    <div className="mt-4 border-t border-rule pt-4 flex flex-col items-center gap-3">
+      <div className="bg-white rounded-xl p-3 min-w-[244px] min-h-[244px] flex items-center justify-center">
+        {qr ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={qr.src}
+            alt={`QR code of the DID of ${serviceName}`}
+            width={qr.size}
+            height={qr.size}
+            style={{ imageRendering: 'pixelated' }}
+          />
+        ) : (
+          <span className="text-xs text-[#6b7280] text-center px-4">
+            {failed ? 'The QR code could not be generated.' : 'Generating...'}
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-muted text-center max-w-xs">
+        Scan the DID of {serviceName} from the scanner of an app, such as Hologram.
+      </p>
+    </div>
+  )
+}
+
 export default function DidRow({
   config,
   hit,
@@ -99,6 +160,7 @@ export default function DidRow({
   )
   const [copied, setCopied] = useState(false)
   const [showRaw, setShowRaw] = useState(false)
+  const [showQr, setShowQr] = useState(false)
 
   // [SRCH-ENR-2]: resolver enrichment when the snippet has no card fields.
   useEffect(() => {
@@ -226,6 +288,16 @@ export default function DidRow({
                 className={`h-3.5 w-3.5 ${copied ? 'text-success-ink' : ''}`}
               />
             </button>
+            <button
+              type="button"
+              aria-label="DID QR code"
+              aria-expanded={showQr}
+              title="Show the DID as a QR code"
+              className={`hover:text-ink ${showQr ? 'text-ink' : 'text-muted'}`}
+              onClick={() => setShowQr((v) => !v)}
+            >
+              <FontAwesomeIcon icon={faQrcode} className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
 
@@ -283,6 +355,8 @@ export default function DidRow({
           )}
         </div>
       </div>
+
+      {showQr && <DidQrPanel value={did} serviceName={card?.serviceName ?? 'this service'} />}
 
       {/* v1 detail: raw resolver link/drawer ([SRCH-RES-1]) */}
       {showRaw && (
