@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/verana-labs/verana-search/compare/v0.3.0...v0.4.0) (2026-11-14)
+
+
+### Features
+
+* DID QR code on every Did row ([#13](https://github.com/verana-labs/verana-search/issues/13)) ([0346030](https://github.com/verana-labs/verana-search/commit/0346030d6e9fceaad916c445452d118f34253670))
+
 ## [0.3.0](https://github.com/verana-labs/verana-search/compare/v0.2.0...v0.3.0) (2026-09-23)
 
 
