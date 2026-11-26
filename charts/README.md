@@ -33,4 +33,8 @@ helm install verana-search ./charts \
 | `env.RESOLVER_BASE_URL` | devnet indexer | Verana Indexer base URL |
 | `env.NETWORK_LABEL` | `Devnet` | Network name shown in the header |
 | `resources` | 50m/128Mi requests, 250m/256Mi limits | Minimal defaults |
-| `ingress.enabled` | `true` | nginx + cert-manager (letsencrypt-prod) |
+| `ingress.enabled` | `true` | Publish the public route |
+| `ingress.type` | `ingress` | `ingress` for nginx + cert-manager (letsencrypt-prod), `gateway` for an HTTPRoute |
+| `ingress.gateway.name` | `""` | Gateway that accepts the route (type `gateway`) |
+| `ingress.gateway.namespace` | `""` | Namespace of the Gateway, when it is another one |
+| `ingress.gateway.sectionName` | `""` | Listener of the Gateway, when it has more than one |
