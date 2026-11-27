@@ -37,4 +37,6 @@ helm install verana-search ./charts \
 | `ingress.type` | `ingress` | `ingress` for nginx + cert-manager (letsencrypt-prod), `gateway` for an HTTPRoute |
 | `ingress.gateway.name` | `""` | Gateway that accepts the route (type `gateway`) |
 | `ingress.gateway.namespace` | `""` | Namespace of the Gateway, when it is another one |
-| `ingress.gateway.sectionName` | `""` | Listener of the Gateway, when it has more than one |
+| `ingress.gateway.sectionName` | `""` | HTTPS listener of the Gateway; empty attaches the route to every one |
+
+Leave `ingress.gateway.sectionName` empty only when the Gateway has a single HTTPS listener: a `parentRef` without it attaches the route to every listener, so a plain HTTP one would serve the app with no redirect.
